@@ -1,0 +1,22 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+mainClassName = 'mqttloader.Loader'
+applicationDefaultJvmArgs = ['-Djava.util.logging.config.file=logging.properties', '-Dfile.encoding=UTF-8']
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation group: 'org.eclipse.paho', name: 'org.eclipse.paho.mqttv5.client', version: '1.2.5'
+    implementation group: 'org.eclipse.paho', name: 'org.eclipse.paho.client.mqttv3', version: '1.2.5'
+    implementation group: 'commons-cli', name: 'commons-cli', version: '1.4'
+    implementation group: 'commons-net', name: 'commons-net', version: '3.7'
+}
+
+run {
+    args '-h'.split('\\s+')
+}
