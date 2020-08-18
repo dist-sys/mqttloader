@@ -7,7 +7,7 @@ Java SE 14.0.1 以降での動作を確認しています。（それより前�
 ## 2. ダウンロード＆実行
 以下のURLからアーカイブファイル（zip or tar）をダウンロードできます。
 
-`https://github.com/dist-sys/mqttloader/releases`  
+https://github.com/dist-sys/mqttloader/releases
 
 ダウンロードしたファイルを解凍すると、以下のディレクトリ構造が得られます。
 

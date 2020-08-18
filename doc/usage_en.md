@@ -6,7 +6,7 @@ It requires Java SE 14.0.1 or later.
 Older versions might work, but are not tested.
 
 ## 2. Download and run
-Download the archive file (zip or tar) from: `https://github.com/dist-sys/mqttloader/releases`  
+Download the archive file (zip or tar) from: https://github.com/dist-sys/mqttloader/releases  
 By extracting it, you can get the following files.
 
 ```
