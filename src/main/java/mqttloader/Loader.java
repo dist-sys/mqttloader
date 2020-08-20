@@ -12,7 +12,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Timer;
-import java.util.TimerTask;
 import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -36,20 +35,20 @@ import org.apache.commons.net.ntp.NTPUDPClient;
 import org.apache.commons.net.ntp.TimeInfo;
 
 public class Loader {
-    public static String broker;
+    private String broker;
     private int version;
     private int numPub;
     private int numSub;
-    public static int pubQos;
-    public static int subQos;
-    public static boolean shSub;
-    public static boolean retain;
-    public static String topic;
-    public static int payloadSize;    // [byte] minimum: 8 bytes
-    public static int numMessage; // per client
-    public static int pubInterval;    // [ms]
-    public static int subTimeout; // [s]
-    private int execTime; // [s]
+    private int pubQos;
+    private int subQos;
+    private boolean shSub;
+    private boolean retain;
+    private String topic;
+    private int payloadSize;    // In bytes. Minimum 8 bytes.
+    private int numMessage; // Per client.
+    private int pubInterval;    // In milliseconds.
+    private int subTimeout; // In seconds.
+    private int execTime; // In seconds.
     private String logLevel;  // SEVERE/WARNING/INFO/ALL
     private String ntpServer;
     private String thFile;
@@ -113,7 +112,7 @@ public class Loader {
 
         Timer timer = new Timer();
         if(numSub > 0){
-            timer.schedule(new RecvTimeoutTask(timer), subTimeout*1000);
+            timer.schedule(new RecvTimeoutTask(timer, subTimeout), subTimeout*1000);
         }
 
         try {
@@ -218,16 +217,16 @@ public class Loader {
     private void prepareClients() {
         for(int i=0;i<numPub;i++){
             if(version==5){
-                publishers.add(new Publisher(i));
+                publishers.add(new Publisher(i, broker, pubQos, retain, topic, payloadSize, numMessage, pubInterval));
             }else{
-                publishers.add(new PublisherV3(i));
+                publishers.add(new PublisherV3(i, broker, pubQos, retain, topic, payloadSize, numMessage, pubInterval));
             }
         }
         for(int i=0;i<numSub;i++){
             if(version==5){
-                subscribers.add(new Subscriber(i));
+                subscribers.add(new Subscriber(i, broker, subQos, shSub, topic));
             }else{
-                subscribers.add(new SubscriberV3(i));
+                subscribers.add(new SubscriberV3(i, broker, subQos, topic));
             }
         }
     }

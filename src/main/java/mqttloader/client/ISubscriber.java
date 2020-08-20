@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.TreeMap;
 
 public interface ISubscriber {
-    public String getClientId();
-    public TreeMap<Integer, Integer> getThroughputs();
-    public ArrayList<Integer> getLatencies();
-    public void disconnect();
+    String CLIENT_ID_PREFIX = "mqttloaderclient-sub";
+
+    String getClientId();
+    TreeMap<Integer, Integer> getThroughputs();
+    ArrayList<Integer> getLatencies();
+    void disconnect();
 }

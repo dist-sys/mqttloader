@@ -14,25 +14,23 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 
 public class SubscriberV3 implements MqttCallback, ISubscriber {
-    private static String CLIENT_ID_PREFIX = "mqttloaderclient-sub";
-
     private MqttClient client;
     private final String clientId;
 
     private TreeMap<Integer, Integer> throughputs = new TreeMap<>();
     private ArrayList<Integer> latencies = new ArrayList<>();
 
-    public SubscriberV3(int clientNumber) {
+    public SubscriberV3(int clientNumber, String broker, int qos, String topic) {
         clientId = CLIENT_ID_PREFIX + String.format("%06d", clientNumber);
         MqttConnectOptions options = new MqttConnectOptions();
         options.setMqttVersion(4);
         try {
-            client = new MqttClient(Loader.broker, clientId);
+            client = new MqttClient(broker, clientId);
             client.setCallback(this);
             client.connect(options);
             Loader.logger.info("Subscriber client is connected: "+clientId);
-            client.subscribe(Loader.topic, Loader.subQos);
-            Loader.logger.info("Subscribed (" + Loader.topic + ", QoS:" + Loader.subQos + "): " + clientId);
+            client.subscribe(topic, qos);
+            Loader.logger.info("Subscribed (" + topic + ", QoS:" + qos + "): " + clientId);
         } catch (MqttException e) {
             e.printStackTrace();
         }

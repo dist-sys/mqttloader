@@ -1,4 +1,6 @@
 # MQTTLoader usage
+MQTTLoader is a load testing tool (client tool) for MQTT.  
+It supports both MQTT v5.0 and v3.1.1.
 
 ## 1. Environment requirements
 MQTTLoader is available on Windows, MacOS, Ubuntu Linux or any platforms that supports Java.  
@@ -52,6 +54,12 @@ usage: mqttloader.Loader -b <arg> [-v <arg>] [-p <arg>] [-s <arg>] [-pq
 For example, you can run MQTTLoader with one publisher that sends 10 messages and one subscriber by:
 
 `$ ./mqttloader -b tcp://<IP>:<PORT> -p 1 -s 1 -m 10`
+
+If you just want to quickly confirm how MQTTLoader works, using a public broker is a easy way.  
+For example, the following command uses a public MQTT broker provided by HiveMQ.  
+(Please do not make a haevy load on public brokers.)
+
+`$ ./mqttloader -b tcp://broker.hivemq.com:1883 -p 1 -s 1 -m 10`
 
 
 ## 3. Parameteres of MQTTLoader

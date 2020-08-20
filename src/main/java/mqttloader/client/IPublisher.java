@@ -3,7 +3,9 @@ package mqttloader.client;
 import java.util.TreeMap;
 
 public interface IPublisher {
-    public String getClientId();
-    public TreeMap<Integer, Integer> getThroughputs();
-    public void disconnect();
+    String CLIENT_ID_PREFIX = "mqttloaderclient-pub";
+
+    String getClientId();
+    TreeMap<Integer, Integer> getThroughputs();
+    void disconnect();
 }

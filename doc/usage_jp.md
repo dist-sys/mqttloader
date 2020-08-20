@@ -1,4 +1,5 @@
 # MQTTLoader 利用方法
+MQTTLoaderは、MQTT v5.0とv3.1.1に対応した負荷テストツール（クライアントツール）です。
 
 ## 1. 環境要件
 MQTTLoader は Java を利用可能なOS（Windows, MacOS, Ubuntu Linux等）上で動きます。  
@@ -54,6 +55,12 @@ usage: mqttloader.Loader -b <arg> [-v <arg>] [-p <arg>] [-s <arg>] [-pq
 例えば以下のように実行すると、MQTTLoader は publisher と subscriber をひとつずつ立ち上げ、publisher からは10個のメッセージが送信（PUBLISH）されます。
 
 `$ ./mqttloader -b tcp://<IP>:<PORT> -p 1 -s 1 -m 10`
+
+MQTTLoaderの動作を確認するだけなら、パブリックブローカを使うのが手軽です。  
+例えば、以下のように実行すると、HiveMQが提供しているパブリックブローカに接続することができます。  
+（高い負荷をかけるような使い方にならないよう、注意してください。）
+
+`$ ./mqttloader -b tcp://broker.hivemq.com:1883 -p 1 -s 1 -m 10`
 
 
 ## 3. MQTTLoaderのパラメータ
