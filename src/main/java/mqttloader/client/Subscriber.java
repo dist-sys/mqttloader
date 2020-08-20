@@ -15,30 +15,28 @@ import org.eclipse.paho.mqttv5.common.MqttMessage;
 import org.eclipse.paho.mqttv5.common.packet.MqttProperties;
 
 public class Subscriber implements MqttCallback, ISubscriber {
-    private static String CLIENT_ID_PREFIX = "mqttloaderclient-sub";
-
     private MqttClient client;
     private final String clientId;
 
     private TreeMap<Integer, Integer> throughputs = new TreeMap<>();
     private ArrayList<Integer> latencies = new ArrayList<>();
 
-    public Subscriber(int clientNumber) {
+    public Subscriber(int clientNumber, String broker, int qos, boolean shSub, String topic) {
         clientId = CLIENT_ID_PREFIX + String.format("%06d", clientNumber);
         MqttConnectionOptions options = new MqttConnectionOptions();
         try {
-            client = new MqttClient(Loader.broker, clientId);
+            client = new MqttClient(broker, clientId);
             client.setCallback(this);
             client.connect(options);
             Loader.logger.info("Subscriber client is connected: "+clientId);
-            String topic;
-            if(Loader.shSub){
-                topic = "$share/mqttload/"+Loader.topic;
+            String t;
+            if(shSub){
+                t = "$share/mqttload/"+topic;
             }else{
-                topic = Loader.topic;
+                t = topic;
             }
-            client.subscribe(topic, Loader.subQos);
-            Loader.logger.info("Subscribed (" + topic + ", QoS:" + Loader.subQos + "): " + clientId);
+            client.subscribe(t, qos);
+            Loader.logger.info("Subscribed (" + t + ", QoS:" + qos + "): " + clientId);
         } catch (MqttException e) {
             e.printStackTrace();
         }
