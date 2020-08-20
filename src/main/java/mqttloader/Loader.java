@@ -11,6 +11,8 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -46,6 +48,7 @@ public class Loader {
     public static int payloadSize;    // [byte] minimum: 8 bytes
     public static int numMessage; // per client
     public static int pubInterval;    // [ms]
+    public static int subTimeout; // [s]
     private int execTime; // [s]
     private String logLevel;  // SEVERE/WARNING/INFO/ALL
     private String ntpServer;
@@ -56,6 +59,7 @@ public class Loader {
     private ArrayList<ISubscriber> subscribers = new ArrayList<>();
     public static long startTime;
     public static long offset = 0;
+    public static long lastRecvTime;
     public static CountDownLatch countDownLatch;
     public static Logger logger = Logger.getLogger(Loader.class.getName());
 
@@ -72,7 +76,8 @@ public class Loader {
         PAYLOAD("d"),
         NUM_MSG("m"),
         INTERVAL("i"),
-        EXEC_TIME("e"),
+        SUB_TIMEOUT("st"),
+        EXEC_TIME("et"),
         LOG_LEVEL("l"),
         NTP("n"),
         TH_FILE("tf"),
@@ -106,23 +111,18 @@ public class Loader {
         logger.info("Starting measurement.");
         startMeasurement();
 
+        Timer timer = new Timer();
+        if(numSub > 0){
+            timer.schedule(new RecvTimeoutTask(timer), subTimeout*1000);
+        }
+
         try {
             countDownLatch.await(execTime, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        logger.info("Finished to send out messages by publishers.");
 
-        if (numSub > 0) {
-           long elapsed = getTime() - startTime;
-           if(execTime *1000 > elapsed) {
-               try {
-                   Thread.sleep(execTime *1000-elapsed);
-               } catch (InterruptedException e) {
-                   e.printStackTrace();
-               }
-           }
-        }
+        timer.cancel();
 
         logger.info("Terminating clients.");
         disconnectClients();
@@ -152,7 +152,8 @@ public class Loader {
         options.addOption(Opt.PAYLOAD.name, "payload", true, "Data (payload) size in bytes.");
         options.addOption(Opt.NUM_MSG.name, "nmsg", true, "Number of messages sent by each publisher.");
         options.addOption(Opt.INTERVAL.name, "interval", true, "Publish interval in milliseconds.");
-        options.addOption(Opt.EXEC_TIME.name, "time", true, "Execution time in seconds.");
+        options.addOption(Opt.SUB_TIMEOUT.name, "subtimeout", true, "Subscribers' timeout in seconds.");
+        options.addOption(Opt.EXEC_TIME.name, "exectime", true, "Execution time in seconds.");
         options.addOption(Opt.LOG_LEVEL.name, "log", true, "Log level (SEVERE/WARNING/INFO/ALL).");
         options.addOption(Opt.NTP.name, "ntp", true, "NTP server. E.g., ntp.nict.jp");
         options.addOption(Opt.TH_FILE.name, "thfile", true, "File name for throughput data.");
@@ -194,13 +195,18 @@ public class Loader {
         payloadSize = Integer.valueOf(cmd.getOptionValue(Opt.PAYLOAD.name, "1024"));
         numMessage = Integer.valueOf(cmd.getOptionValue(Opt.NUM_MSG.name, "100"));
         pubInterval = Integer.valueOf(cmd.getOptionValue(Opt.INTERVAL.name, "0"));
-        execTime = Integer.valueOf(cmd.getOptionValue(Opt.EXEC_TIME.name, "10"));
+        subTimeout = Integer.valueOf(cmd.getOptionValue(Opt.SUB_TIMEOUT.name, "5"));
+        execTime = Integer.valueOf(cmd.getOptionValue(Opt.EXEC_TIME.name, "60"));
         logLevel = cmd.getOptionValue(Opt.LOG_LEVEL.name, "WARNING");
         ntpServer = cmd.getOptionValue(Opt.NTP.name, null);
         thFile = cmd.getOptionValue(Opt.TH_FILE.name, null);
         ltFile = cmd.getOptionValue(Opt.LT_FILE.name, null);
 
-        countDownLatch = new CountDownLatch(numPub);
+        if (numSub > 0) {
+            countDownLatch = new CountDownLatch(numPub+1);  // For waiting for publishers' completion and subscribers' timeout.
+        } else {
+            countDownLatch = new CountDownLatch(numPub);
+        }
     }
 
     private void printHelp(Options options) {
@@ -249,6 +255,7 @@ public class Loader {
         }
 
         startTime = getTime();
+        lastRecvTime = startTime;
         for(IPublisher pub: publishers){
             if(version==5){
                 new Thread((Publisher)pub).start();

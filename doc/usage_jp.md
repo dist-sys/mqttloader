@@ -28,26 +28,27 @@ Windowsユーザはmqttloader.bat（バッチファイル）を、Linux等のユ
 ```
 usage: mqttloader.Loader -b <arg> [-v <arg>] [-p <arg>] [-s <arg>] [-pq
        <arg>] [-sq <arg>] [-ss] [-r] [-t <arg>] [-d <arg>] [-m <arg>] [-i
-       <arg>] [-e <arg>] [-l <arg>] [-n <arg>] [-tf <arg>] [-lf <arg>]
-       [-h]
- -b,--broker <arg>     Broker URL. E.g., tcp://127.0.0.1:1883
- -v,--version <arg>    MQTT version ("3" for 3.1.1 or "5" for 5.0).
- -p,--npub <arg>       Number of publishers.
- -s,--nsub <arg>       Number of subscribers.
- -pq,--pubqos <arg>    QoS level of publishers (0/1/2).
- -sq,--subqos <arg>    QoS level of subscribers (0/1/2).
- -ss,--shsub           Enable shared subscription.
- -r,--retain           Enable retain.
- -t,--topic <arg>      Topic name to be used.
- -d,--payload <arg>    Data (payload) size in bytes.
- -m,--nmsg <arg>       Number of messages sent by each publisher.
- -i,--interval <arg>   Publish interval in milliseconds.
- -e,--time <arg>       Execution time in seconds.
- -l,--log <arg>        Log level (SEVERE/WARNING/INFO/ALL).
- -n,--ntp <arg>        NTP server. E.g., ntp.nict.jp
- -tf,--thfile <arg>    File name for throughput data.
- -lf,--ltfile <arg>    File name for latency data.
- -h,--help             Display help.
+       <arg>] [-st <arg>] [-et <arg>] [-l <arg>] [-n <arg>] [-tf <arg>]
+       [-lf <arg>] [-h]
+ -b,--broker <arg>        Broker URL. E.g., tcp://127.0.0.1:1883
+ -v,--version <arg>       MQTT version ("3" for 3.1.1 or "5" for 5.0).
+ -p,--npub <arg>          Number of publishers.
+ -s,--nsub <arg>          Number of subscribers.
+ -pq,--pubqos <arg>       QoS level of publishers (0/1/2).
+ -sq,--subqos <arg>       QoS level of subscribers (0/1/2).
+ -ss,--shsub              Enable shared subscription.
+ -r,--retain              Enable retain.
+ -t,--topic <arg>         Topic name to be used.
+ -d,--payload <arg>       Data (payload) size in bytes.
+ -m,--nmsg <arg>          Number of messages sent by each publisher.
+ -i,--interval <arg>      Publish interval in milliseconds.
+ -st,--subtimeout <arg>   Subscribers' timeout in seconds.
+ -et,--exectime <arg>     Execution time in seconds.
+ -l,--log <arg>           Log level (SEVERE/WARNING/INFO/ALL).
+ -n,--ntp <arg>           NTP server. E.g., ntp.nict.jp
+ -tf,--thfile <arg>       File name for throughput data.
+ -lf,--ltfile <arg>       File name for latency data.
+ -h,--help                Display help.
 ```
 
 例えば以下のように実行すると、MQTTLoader は publisher と subscriber をひとつずつ立ち上げ、publisher からは10個のメッセージが送信（PUBLISH）されます。
@@ -71,17 +72,20 @@ usage: mqttloader.Loader -b <arg> [-v <arg>] [-p <arg>] [-s <arg>] [-pq
 | -d \<arg\> | 1024 | publisherが送信するメッセージのデータサイズ（MQTTパケットのペイロード部分のサイズ）。単位はbyte。 |
 | -m \<arg\> | 100 | **各**publisherによって送信されるメッセージの数。 |
 | -i \<arg\> | 0 | 各publisherがメッセージを送信する間隔。単位はミリ秒。各publisherは、前のメッセージの送信が完了後、ここで指定された時間が経過してから、次のメッセージを送信する。 |
-| -e \<arg\> | 10 | 測定の実行時間。単位は秒。 |
+| -st \<arg\> | 5 | subscriberの受信タイムアウト。単位は秒。 |
+| -et \<arg\> | 60 | 測定の実行時間上限。単位は秒。 |
 | -l \<arg\> | WARNING | ログレベル。設定可能な値：`SEVERE`/`WARNING`/`INFO`/`ALL` |
 | -n \<arg\> | （無し） | NTPサーバのURL。例：`ntp.nict.jp`　（デフォルトでは、時刻同期はオフ） |
 | -tf \<arg\> | （無し） | スループットデータを記録するファイル名。デフォルトではファイルへの記録はオフ。 |
 | -lf \<arg\> | （無し） | レイテンシデータを記録するファイル名。デフォルトではファイルへの記録はオフ。 |
 | -h |  | ヘルプを表示 |
 
-パラメータ`-e`によって指定される時間は、タイムアウトの値です。  
-MQTTLoaderは、publisherがメッセージの送信を開始してから、指定された時間が経過したら、クライアントを切断させ終了していきます。  
-この値が短すぎると、メッセージの送信や受信が全て完了しない可能性があるため、注意してください。  
-なお、subscriber数が0の場合、MQTTLoaderは、全publisherがメッセージ送信を完了したら即座にクライアントの終了をおこないます。
+MQTTLoaderは、以下の条件をすべて満たすと、クライアントを切断させ終了します。  
+- （publisher数が1以上の場合）全publisherがメッセージ送信を完了
+- （subscriber数が1以上の場合）全subscriberのメッセージ受信のうち、最後の受信からパラメータ`-st`で指定した秒数が経過
+
+また、MQTTLoaderは、パラメータ`-et`によって指定される時間が経過すると、メッセージ送受信中であっても、終了します。  
+このため、`-et`は長めに設定しておくと良いでしょう。
 
 パラメータ`-n`は、複数のMQTTLoaderを異なるマシン上で実行する場合に役に立つかもしれません。  
 このパラメータを設定すると、MQTTLoaderは指定されたNTPサーバから時刻のオフセット情報を取得し、スループットやレイテンシの計算にそれを反映します。
