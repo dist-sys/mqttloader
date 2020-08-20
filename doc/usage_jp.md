@@ -78,7 +78,7 @@ MQTTLoaderの動作を確認するだけなら、パブリックブローカを�
 | -t \<arg\> | mqttloader-test-topic | 測定で用いられるトピック名 |
 | -d \<arg\> | 1024 | publisherが送信するメッセージのデータサイズ（MQTTパケットのペイロード部分のサイズ）。単位はbyte。 |
 | -m \<arg\> | 100 | **各**publisherによって送信されるメッセージの数。 |
-| -i \<arg\> | 0 | 各publisherがメッセージを送信する間隔。単位はミリ秒。各publisherは、前のメッセージの送信が完了後、ここで指定された時間が経過してから、次のメッセージを送信する。 |
+| -i \<arg\> | 0 | 各publisherがメッセージを送信する間隔。単位はミリ秒。 |
 | -st \<arg\> | 5 | subscriberの受信タイムアウト。単位は秒。 |
 | -et \<arg\> | 60 | 測定の実行時間上限。単位は秒。 |
 | -l \<arg\> | WARNING | ログレベル。設定可能な値：`SEVERE`/`WARNING`/`INFO`/`ALL` |

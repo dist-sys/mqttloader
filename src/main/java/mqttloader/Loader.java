@@ -256,11 +256,7 @@ public class Loader {
         startTime = getTime();
         lastRecvTime = startTime;
         for(IPublisher pub: publishers){
-            if(version==5){
-                new Thread((Publisher)pub).start();
-            }else{
-                new Thread((PublisherV3)pub).start();
-            }
+            pub.start();
         }
     }
 
