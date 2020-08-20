@@ -1,6 +1,9 @@
 package mqttloader.client;
 
 import java.util.TreeMap;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import mqttloader.Loader;
 import org.eclipse.paho.mqttv5.client.MqttClient;
@@ -19,6 +22,9 @@ public class Publisher implements Runnable, IPublisher {
     private boolean hasInterval;
 
     private TreeMap<Integer, Integer> throughputs = new TreeMap<>();
+
+    private ScheduledThreadPoolExecutor service;
+    private ScheduledFuture future;
 
     public Publisher(int clientNumber, String broker, int qos, boolean retain, String topic, int payloadSize, int numMessage, int pubInterval) {
         message.setQos(qos);
@@ -41,36 +47,73 @@ public class Publisher implements Runnable, IPublisher {
     }
 
     @Override
-    public void run() {
-        for(int i=0;i<numMessage;i++){
-            if(!client.isConnected()) break;
-            message.setPayload(Loader.genPayloads(payloadSize));
-            try{
-                client.publish(topic, message);
-            } catch(MqttException me) {
-                me.printStackTrace();
-            }
+    public void start() {
+        service = new ScheduledThreadPoolExecutor(1);
+        if(pubInterval==0){
+            future = service.schedule(this, 0, TimeUnit.MILLISECONDS);
+        }else{
+            future = service.scheduleAtFixedRate(this, 0, pubInterval, TimeUnit.MILLISECONDS);
+        }
+    }
 
-            int slot = (int)((Loader.getTime()-Loader.startTime)/1000);
-            int count = throughputs.containsKey(slot) ? throughputs.get(slot)+1 : 1;
-            throughputs.put(slot, count);
+    public void terminate() {
+        service.shutdown();
+        Loader.countDownLatch.countDown();
+    }
 
-            Loader.logger.fine("Published a message (" + topic + "): "+clientId);
-
-            if(hasInterval){
-                try {
-                    Thread.sleep(pubInterval);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
+    public void publish() {
+        message.setPayload(Loader.genPayloads(payloadSize));
+        try{
+            client.publish(topic, message);
+        } catch(MqttException me) {
+            me.printStackTrace();
         }
 
-        Loader.countDownLatch.countDown();
+        int slot = (int)((Loader.getTime()-Loader.startTime)/1000);
+        int count = throughputs.containsKey(slot) ? throughputs.get(slot)+1 : 1;
+        throughputs.put(slot, count);
+
+        Loader.logger.fine("Published a message (" + topic + "): "+clientId);
+    }
+
+    public void periodicalRun() {
+        publish();
+
+        numMessage--;
+        if(numMessage==0){
+            terminate();
+        }
+    }
+
+    public void continuousRun() {
+        for(int i=0;i<numMessage;i++){
+            if(future.isCancelled()) break;
+            publish();
+        }
+
+        terminate();
+    }
+
+    @Override
+    public void run() {
+        if(!client.isConnected()) {
+            terminate();
+        }
+
+        if(pubInterval==0){
+            continuousRun();
+        }else{
+            periodicalRun();
+        }
     }
 
     @Override
     public void disconnect() {
+        if(!future.isDone()) {
+            future.cancel(false);
+            service.shutdown();
+        }
+
         try {
             client.disconnect();
         } catch (MqttException e) {

@@ -77,7 +77,7 @@ For example, the following command uses a public MQTT broker provided by HiveMQ.
 | -t \<arg\> | mqttloader-test-topic | Topic name to be used. |
 | -d \<arg\> | 1024 | The size of data (payload of messages to be published) in bytes. |
 | -m \<arg\> | 100 | Number of messages sent by **each** publisher. |
-| -i \<arg\> | 0 | Publish interval in milliseconds. Each publisher send a message after the specified time passes since the previous message was finished to send out. |
+| -i \<arg\> | 0 | Publish interval in milliseconds. |
 | -st \<arg\> | 5 | Timeout for receiving messages by subscribers in seconds. |
 | -et \<arg\> | 60 | Maximum execution time for measurement in seconds. |
 | -l \<arg\> | WARNING | Log level. Valid values are `SEVERE`/`WARNING`/`INFO`/`ALL`. |
