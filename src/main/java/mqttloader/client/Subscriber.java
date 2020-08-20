@@ -84,6 +84,8 @@ public class Subscriber implements MqttCallback, ISubscriber {
         long pubTime = ByteBuffer.wrap(message.getPayload()).getLong();
         latencies.add((int)(time-pubTime));
 
+        Loader.lastRecvTime = time;
+
         Loader.logger.fine("Received a message (" + topic + "): "+clientId);
     }
 

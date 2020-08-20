@@ -26,26 +26,27 @@ You can display the help by:
 ```
 usage: mqttloader.Loader -b <arg> [-v <arg>] [-p <arg>] [-s <arg>] [-pq
        <arg>] [-sq <arg>] [-ss] [-r] [-t <arg>] [-d <arg>] [-m <arg>] [-i
-       <arg>] [-e <arg>] [-l <arg>] [-n <arg>] [-tf <arg>] [-lf <arg>]
-       [-h]
- -b,--broker <arg>     Broker URL. E.g., tcp://127.0.0.1:1883
- -v,--version <arg>    MQTT version ("3" for 3.1.1 or "5" for 5.0).
- -p,--npub <arg>       Number of publishers.
- -s,--nsub <arg>       Number of subscribers.
- -pq,--pubqos <arg>    QoS level of publishers (0/1/2).
- -sq,--subqos <arg>    QoS level of subscribers (0/1/2).
- -ss,--shsub           Enable shared subscription.
- -r,--retain           Enable retain.
- -t,--topic <arg>      Topic name to be used.
- -d,--payload <arg>    Data (payload) size in bytes.
- -m,--nmsg <arg>       Number of messages sent by each publisher.
- -i,--interval <arg>   Publish interval in milliseconds.
- -e,--time <arg>       Execution time in seconds.
- -l,--log <arg>        Log level (SEVERE/WARNING/INFO/ALL).
- -n,--ntp <arg>        NTP server. E.g., ntp.nict.jp
- -tf,--thfile <arg>    File name for throughput data.
- -lf,--ltfile <arg>    File name for latency data.
- -h,--help             Display help.
+       <arg>] [-st <arg>] [-et <arg>] [-l <arg>] [-n <arg>] [-tf <arg>]
+       [-lf <arg>] [-h]
+ -b,--broker <arg>        Broker URL. E.g., tcp://127.0.0.1:1883
+ -v,--version <arg>       MQTT version ("3" for 3.1.1 or "5" for 5.0).
+ -p,--npub <arg>          Number of publishers.
+ -s,--nsub <arg>          Number of subscribers.
+ -pq,--pubqos <arg>       QoS level of publishers (0/1/2).
+ -sq,--subqos <arg>       QoS level of subscribers (0/1/2).
+ -ss,--shsub              Enable shared subscription.
+ -r,--retain              Enable retain.
+ -t,--topic <arg>         Topic name to be used.
+ -d,--payload <arg>       Data (payload) size in bytes.
+ -m,--nmsg <arg>          Number of messages sent by each publisher.
+ -i,--interval <arg>      Publish interval in milliseconds.
+ -st,--subtimeout <arg>   Subscribers' timeout in seconds.
+ -et,--exectime <arg>     Execution time in seconds.
+ -l,--log <arg>           Log level (SEVERE/WARNING/INFO/ALL).
+ -n,--ntp <arg>           NTP server. E.g., ntp.nict.jp
+ -tf,--thfile <arg>       File name for throughput data.
+ -lf,--ltfile <arg>       File name for latency data.
+ -h,--help                Display help.
 ```
 
 For example, you can run MQTTLoader with one publisher that sends 10 messages and one subscriber by:
@@ -69,16 +70,20 @@ For example, you can run MQTTLoader with one publisher that sends 10 messages an
 | -d \<arg\> | 1024 | The size of data (payload of messages to be published) in bytes. |
 | -m \<arg\> | 100 | Number of messages sent by **each** publisher. |
 | -i \<arg\> | 0 | Publish interval in milliseconds. Each publisher send a message after the specified time passes since the previous message was finished to send out. |
-| -e \<arg\> | 10 | Execution time for measurement in seconds. |
+| -st \<arg\> | 5 | Timeout for receiving messages by subscribers in seconds. |
+| -et \<arg\> | 60 | Maximum execution time for measurement in seconds. |
 | -l \<arg\> | WARNING | Log level. Valid values are `SEVERE`/`WARNING`/`INFO`/`ALL`. |
 | -n \<arg\> | (none) | URL of the NTP server, e.g., `ntp.nict.jp`. By default, time synchronization is disabled. |
 | -tf \<arg\> | (none) | File name to write out the throughput data. By default, file output is disabled. |
 | -lf \<arg\> | (none) | File name to write out the latency data. By default, file output is disabled. |
 | -h |  | Display help. |
 
-The time specified by the parameter `-e` indicates the timeout; MQTTLoader terminates the clients when the specified time passes since the publishers started to send out messages.  
-Too short value for `-e` may cause incomplete sending or receiving. 
-Note that if the number of subscribers is set to 0, MQTTLoader terminates clients immediately after the publishers complete to send out messages.
+MQTTLoader starts to terminate when all of the following conditions are met.  
+- (If the number of publishers is one or more) All publishers complete to send out messages.
+- (If the number of subscribers is one or more) The time specified by the parameter `-st` elapses from the last time subscribers receive a message.
+
+MQTTLoader also starts to terminate when the time specified by the parameter `-et` elapses, even if there are in-flight messages.  
+Thus, `-et` should be long sufficiently.
 
 The parameter `-n` might be useful for running multiple MQTTLoader on different machines.  
 By setting this parameter, MQTTLoader obtains the offset time from the specified NTP server and reflects it to calculate throughput and latency.
