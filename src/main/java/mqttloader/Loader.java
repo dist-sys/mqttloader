@@ -286,9 +286,11 @@ public class Loader {
             }
         }
 
-        for(int i=thTotal.firstKey(); i<=thTotal.lastKey(); i++){
-            if(!thTotal.containsKey(i)){
-                thTotal.put(i, 0);
+        if(thTotal.size()>0){
+            for(int i=thTotal.firstKey(); i<=thTotal.lastKey(); i++){
+                if(!thTotal.containsKey(i)){
+                    thTotal.put(i, 0);
+                }
             }
         }
 
@@ -379,21 +381,23 @@ public class Loader {
         }
 
         int numClients = publishers.size()+subscribers.size();
-        for(int slot=thAggregate.firstKey();slot<thAggregate.lastKey()+1;slot++){
-            StringBuilder lineSb = new StringBuilder();
-            lineSb.append(slot);
+        if(thAggregate.size()>0){
+            for(int slot=thAggregate.firstKey();slot<thAggregate.lastKey()+1;slot++){
+                StringBuilder lineSb = new StringBuilder();
+                lineSb.append(slot);
 
-            for(int i=0;i<numClients;i++) {
-                if (thAggregate.containsKey(slot)) {
-                    if (thAggregate.get(slot).containsKey(i)) {
-                        lineSb.append(", " + thAggregate.get(slot).get(i));
-                        continue;
+                for(int i=0;i<numClients;i++) {
+                    if (thAggregate.containsKey(slot)) {
+                        if (thAggregate.get(slot).containsKey(i)) {
+                            lineSb.append(", " + thAggregate.get(slot).get(i));
+                            continue;
+                        }
                     }
+                    lineSb.append(", " + 0);
                 }
-                lineSb.append(", " + 0);
+                lineSb.append("\n");
+                sb.append(lineSb);
             }
-            lineSb.append("\n");
-            sb.append(lineSb);
         }
 
         String thFile = cmd.getOptionValue(Opt.TH_FILE.getName(), Opt.TH_FILE.getDefaultValue());
