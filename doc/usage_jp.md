@@ -28,28 +28,13 @@ Windowsユーザはmqttloader.bat（バッチファイル）を、Linux等のユ
 
 ```
 usage: mqttloader.Loader -b <arg> [-v <arg>] [-p <arg>] [-s <arg>] [-pq
-       <arg>] [-sq <arg>] [-ss] [-r] [-t <arg>] [-d <arg>] [-m <arg>] [-i
-       <arg>] [-st <arg>] [-et <arg>] [-l <arg>] [-n <arg>] [-tf <arg>]
-       [-lf <arg>] [-h]
+       <arg>] [-sq <arg>] [-ss] [-r] [-t <arg>] [-d <arg>] [-m <arg>] [-ru
+       <arg>] [-rd <arg>] [-i <arg>] [-st <arg>] [-et <arg>] [-l <arg>]
+       [-n <arg>] [-tf <arg>] [-lf <arg>] [-h]
  -b,--broker <arg>        Broker URL. E.g., tcp://127.0.0.1:1883
  -v,--version <arg>       MQTT version ("3" for 3.1.1 or "5" for 5.0).
- -p,--npub <arg>          Number of publishers.
- -s,--nsub <arg>          Number of subscribers.
- -pq,--pubqos <arg>       QoS level of publishers (0/1/2).
- -sq,--subqos <arg>       QoS level of subscribers (0/1/2).
- -ss,--shsub              Enable shared subscription.
- -r,--retain              Enable retain.
- -t,--topic <arg>         Topic name to be used.
- -d,--payload <arg>       Data (payload) size in bytes.
- -m,--nmsg <arg>          Number of messages sent by each publisher.
- -i,--interval <arg>      Publish interval in milliseconds.
- -st,--subtimeout <arg>   Subscribers' timeout in seconds.
- -et,--exectime <arg>     Execution time in seconds.
- -l,--log <arg>           Log level (SEVERE/WARNING/INFO/ALL).
- -n,--ntp <arg>           NTP server. E.g., ntp.nict.jp
- -tf,--thfile <arg>       File name for throughput data.
- -lf,--ltfile <arg>       File name for latency data.
- -h,--help                Display help.
+  :
+  :
 ```
 
 例えば以下のように実行すると、MQTTLoader は publisher と subscriber をひとつずつ立ち上げ、publisher からは10個のメッセージが送信（PUBLISH）されます。
@@ -78,6 +63,8 @@ MQTTLoaderの動作を確認するだけなら、パブリックブローカを�
 | -t \<arg\> | mqttloader-test-topic | 測定で用いられるトピック名 |
 | -d \<arg\> | 1024 | publisherが送信するメッセージのデータサイズ（MQTTパケットのペイロード部分のサイズ）。単位はbyte。 |
 | -m \<arg\> | 100 | **各**publisherによって送信されるメッセージの数。 |
+| -ru \<arg\> | 0 | ランプアップ時間。単位は秒。スループットやレイテンシの計測データのうち、最初から指定秒数までのデータが除外される。 |
+| -rd \<arg\> | 0 | ランプダウン時間。単位は秒。スループットやレイテンシの計測データのうち、最後から指定秒数前までのデータが除外される。 |
 | -i \<arg\> | 0 | 各publisherがメッセージを送信する間隔。単位はミリ秒。 |
 | -st \<arg\> | 5 | subscriberの受信タイムアウト。単位は秒。 |
 | -et \<arg\> | 60 | 測定の実行時間上限。単位は秒。 |
@@ -134,6 +121,16 @@ MQTTLoaderは、各publisherごとに、毎秒の送信メッセージ数をカ�
 | 6 | 2 | 2 | 4 |
 | 7 | 0 | 0 | 集計対象外 |
 | 8 | 0 | 0 | 集計対象外 |
+
+パラメータ`-ru`と`-rd`を用いると、集計対象データからさらに最初と最後の一定秒数分を計算から除外することができます。  
+上記の例にて、 `-ru 1 -rd 1` と設定した場合、以下のデータが集計対象として扱われることになります。
+
+| 測定開始からの秒数 | Aの送信メッセージ数 | Bの送信メッセージ数 | スループット集計値 |
+|:-----------|:------------|:------------|:------------|
+| 2 | 4 | 3 | 7 |
+| 3 | 5 | 5 | 10 |
+| 4 | 0 | 0 | 0 |
+| 5 | 3 | 4 | 7 |
 
 subscriberに関しても、上記と同様にして、受信メッセージのスループットが計算されます。  
 これに加えて、subscriber側では、最大レイテンシと平均レイテンシも計算されます。  

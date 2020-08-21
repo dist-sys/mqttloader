@@ -1,17 +1,22 @@
 package mqttloader.client;
 
-import java.util.TreeMap;
+import static mqttloader.Constants.PUB_CLIENT_ID_PREFIX;
+
+import java.util.ArrayList;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import mqttloader.Loader;
+import mqttloader.Util;
+import mqttloader.record.Latency;
+import mqttloader.record.Throughput;
 import org.eclipse.paho.mqttv5.client.MqttClient;
 import org.eclipse.paho.mqttv5.client.MqttConnectionOptions;
 import org.eclipse.paho.mqttv5.common.MqttException;
 import org.eclipse.paho.mqttv5.common.MqttMessage;
 
-public class Publisher implements Runnable, IPublisher {
+public class Publisher implements Runnable, IClient {
     private MqttClient client;
     private final String clientId;
     private String topic;
@@ -21,7 +26,7 @@ public class Publisher implements Runnable, IPublisher {
     private MqttMessage message = new MqttMessage();
     private boolean hasInterval;
 
-    private TreeMap<Integer, Integer> throughputs = new TreeMap<>();
+    private ArrayList<Throughput> throughputs = new ArrayList<>();
 
     private ScheduledThreadPoolExecutor service;
     private ScheduledFuture future;
@@ -35,7 +40,7 @@ public class Publisher implements Runnable, IPublisher {
         this.pubInterval = pubInterval;
         hasInterval = pubInterval > 0;
 
-        clientId = CLIENT_ID_PREFIX + String.format("%06d", clientNumber);
+        clientId = PUB_CLIENT_ID_PREFIX + String.format("%06d", clientNumber);
         MqttConnectionOptions options = new MqttConnectionOptions();
         try {
             client = new MqttClient(broker, clientId);
@@ -62,16 +67,24 @@ public class Publisher implements Runnable, IPublisher {
     }
 
     public void publish() {
-        message.setPayload(Loader.genPayloads(payloadSize));
+        message.setPayload(Util.genPayloads(payloadSize));
         try{
             client.publish(topic, message);
         } catch(MqttException me) {
             me.printStackTrace();
         }
 
-        int slot = (int)((Loader.getTime()-Loader.startTime)/1000);
-        int count = throughputs.containsKey(slot) ? throughputs.get(slot)+1 : 1;
-        throughputs.put(slot, count);
+        int slot = (int)((Util.getTime()-Loader.startTime)/1000);
+        if(throughputs.size()>0){
+            Throughput lastTh = throughputs.get(throughputs.size()-1);
+            if(lastTh.getSlot() == slot) {
+                lastTh.setCount(lastTh.getCount()+1);
+            }else{
+                throughputs.add(new Throughput(slot, 1));
+            }
+        }else{
+            throughputs.add(new Throughput(slot, 1));
+        }
 
         Loader.logger.fine("Published a message (" + topic + "): "+clientId);
     }
@@ -127,7 +140,12 @@ public class Publisher implements Runnable, IPublisher {
     }
 
     @Override
-    public TreeMap<Integer, Integer> getThroughputs() {
+    public ArrayList<Throughput> getThroughputs() {
         return throughputs;
+    }
+
+    @Override
+    public ArrayList<Latency> getLatencies(){
+        return null;
     }
 }
