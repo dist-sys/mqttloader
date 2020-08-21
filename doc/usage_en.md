@@ -121,7 +121,14 @@ Below is an example of calculating throughputs in the case that two publishers, 
 | 8 | 0 | 0 | Excluded |
 
 By using the parameterse `-ru` and `-rd`, you can further exclude the beginning and trailing data.  
-Note that file output (by `-tf` and `-lf`) does not exclude data even if `-ru` and `-rd` are given.
+If you set `-ru 1 -rd 1` in the above example, the following data is used.
+
+| Elapsed seconds from starting measurement | # of meessages from A | # of messages from B | Throughputs |
+|:-----------|:------------|:------------|:------------|
+| 2 | 4 | 3 | 7 |
+| 3 | 5 | 5 | 10 |
+| 4 | 0 | 0 | 0 |
+| 5 | 3 | 4 | 7 |
 
 For subscribers, throughputs are calculated as same as the above for the received messages.  
 In addition, the maximum latency and the average latency are calculated.  

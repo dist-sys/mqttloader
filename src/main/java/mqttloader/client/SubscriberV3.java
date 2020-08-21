@@ -1,9 +1,12 @@
 package mqttloader.client;
 
+import static mqttloader.Constants.SUB_CLIENT_ID_PREFIX;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 import mqttloader.Loader;
+import mqttloader.Util;
 import mqttloader.record.Latency;
 import mqttloader.record.Throughput;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
@@ -14,7 +17,7 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 
-public class SubscriberV3 implements MqttCallback, ISubscriber {
+public class SubscriberV3 implements MqttCallback, IClient {
     private MqttClient client;
     private final String clientId;
 
@@ -22,7 +25,7 @@ public class SubscriberV3 implements MqttCallback, ISubscriber {
     private ArrayList<Latency> latencies = new ArrayList<>();
 
     public SubscriberV3(int clientNumber, String broker, int qos, String topic) {
-        clientId = CLIENT_ID_PREFIX + String.format("%06d", clientNumber);
+        clientId = SUB_CLIENT_ID_PREFIX + String.format("%06d", clientNumber);
         MqttConnectOptions options = new MqttConnectOptions();
         options.setMqttVersion(4);
         try {
@@ -35,6 +38,10 @@ public class SubscriberV3 implements MqttCallback, ISubscriber {
         } catch (MqttException e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void start(){
     }
 
     @Override
@@ -66,7 +73,7 @@ public class SubscriberV3 implements MqttCallback, ISubscriber {
 
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
-        long time = Loader.getTime();
+        long time = Util.getTime();
         int slot = (int)((time-Loader.startTime)/1000);
         if(throughputs.size()>0){
             Throughput lastTh = throughputs.get(throughputs.size()-1);

@@ -17,7 +17,7 @@ public class RecvTimeoutTask extends TimerTask {
 
     @Override
     public void run() {
-        long remainingTime = subTimeout*1000 - (Loader.getTime() - lastRecvTime);  // <timeout> - <elapsed time>
+        long remainingTime = subTimeout*1000 - (Util.getTime() - lastRecvTime);  // <timeout> - <elapsed time>
         if (remainingTime <= 0) {
             countDownLatch.countDown();
         } else {

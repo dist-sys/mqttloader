@@ -1,18 +1,22 @@
 package mqttloader.client;
 
+import static mqttloader.Constants.PUB_CLIENT_ID_PREFIX;
+
 import java.util.ArrayList;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import mqttloader.Loader;
+import mqttloader.Util;
+import mqttloader.record.Latency;
 import mqttloader.record.Throughput;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
-public class PublisherV3 implements Runnable, IPublisher {
+public class PublisherV3 implements Runnable, IClient {
     private MqttClient client;
     private final String clientId;
     private String topic;
@@ -36,7 +40,7 @@ public class PublisherV3 implements Runnable, IPublisher {
         this.pubInterval = pubInterval;
         hasInterval = pubInterval > 0;
 
-        clientId = CLIENT_ID_PREFIX + String.format("%06d", clientNumber);
+        clientId = PUB_CLIENT_ID_PREFIX + String.format("%06d", clientNumber);
         MqttConnectOptions options = new MqttConnectOptions();
         options.setMqttVersion(4);
         try {
@@ -64,14 +68,14 @@ public class PublisherV3 implements Runnable, IPublisher {
     }
 
     public void publish() {
-        message.setPayload(Loader.genPayloads(payloadSize));
+        message.setPayload(Util.genPayloads(payloadSize));
         try {
             client.publish(topic, message);
         } catch (MqttException e) {
             e.printStackTrace();
         }
 
-        int slot = (int)((Loader.getTime()-Loader.startTime)/1000);
+        int slot = (int)((Util.getTime()-Loader.startTime)/1000);
         if(throughputs.size()>0){
             Throughput lastTh = throughputs.get(throughputs.size()-1);
             if(lastTh.getSlot() == slot) {
@@ -139,5 +143,10 @@ public class PublisherV3 implements Runnable, IPublisher {
     @Override
     public ArrayList<Throughput> getThroughputs() {
         return throughputs;
+    }
+
+    @Override
+    public ArrayList<Latency> getLatencies(){
+        return null;
     }
 }
