@@ -1,12 +1,14 @@
 package mqttloader.client;
 
-import java.util.TreeMap;
+import java.util.ArrayList;
+
+import mqttloader.record.Throughput;
 
 public interface IPublisher {
     String CLIENT_ID_PREFIX = "mqttloaderclient-pub";
 
     void start();
     String getClientId();
-    TreeMap<Integer, Integer> getThroughputs();
+    ArrayList<Throughput> getThroughputs();
     void disconnect();
 }

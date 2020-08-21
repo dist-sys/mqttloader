@@ -1,11 +1,12 @@
 package mqttloader.client;
 
-import java.util.TreeMap;
+import java.util.ArrayList;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import mqttloader.Loader;
+import mqttloader.record.Throughput;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -21,7 +22,7 @@ public class PublisherV3 implements Runnable, IPublisher {
     private MqttMessage message = new MqttMessage();
     private boolean hasInterval;
 
-    private TreeMap<Integer, Integer> throughputs = new TreeMap<>();
+    private ArrayList<Throughput> throughputs = new ArrayList<>();
 
     private ScheduledThreadPoolExecutor service;
     private ScheduledFuture future;
@@ -71,8 +72,16 @@ public class PublisherV3 implements Runnable, IPublisher {
         }
 
         int slot = (int)((Loader.getTime()-Loader.startTime)/1000);
-        int count = throughputs.containsKey(slot) ? throughputs.get(slot)+1 : 1;
-        throughputs.put(slot, count);
+        if(throughputs.size()>0){
+            Throughput lastTh = throughputs.get(throughputs.size()-1);
+            if(lastTh.getSlot() == slot) {
+                lastTh.setCount(lastTh.getCount()+1);
+            }else{
+                throughputs.add(new Throughput(slot, 1));
+            }
+        }else{
+            throughputs.add(new Throughput(slot, 1));
+        }
 
         Loader.logger.fine("Published a message (" + topic + "): "+clientId);
     }
@@ -128,7 +137,7 @@ public class PublisherV3 implements Runnable, IPublisher {
     }
 
     @Override
-    public TreeMap<Integer, Integer> getThroughputs() {
+    public ArrayList<Throughput> getThroughputs() {
         return throughputs;
     }
 }

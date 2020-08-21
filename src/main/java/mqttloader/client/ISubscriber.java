@@ -1,13 +1,15 @@
 package mqttloader.client;
 
 import java.util.ArrayList;
-import java.util.TreeMap;
+
+import mqttloader.record.Latency;
+import mqttloader.record.Throughput;
 
 public interface ISubscriber {
     String CLIENT_ID_PREFIX = "mqttloaderclient-sub";
 
     String getClientId();
-    TreeMap<Integer, Integer> getThroughputs();
-    ArrayList<Integer> getLatencies();
+    ArrayList<Throughput> getThroughputs();
+    ArrayList<Latency> getLatencies();
     void disconnect();
 }

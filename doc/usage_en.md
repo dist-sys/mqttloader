@@ -27,28 +27,13 @@ You can display the help by:
 
 ```
 usage: mqttloader.Loader -b <arg> [-v <arg>] [-p <arg>] [-s <arg>] [-pq
-       <arg>] [-sq <arg>] [-ss] [-r] [-t <arg>] [-d <arg>] [-m <arg>] [-i
-       <arg>] [-st <arg>] [-et <arg>] [-l <arg>] [-n <arg>] [-tf <arg>]
-       [-lf <arg>] [-h]
+       <arg>] [-sq <arg>] [-ss] [-r] [-t <arg>] [-d <arg>] [-m <arg>] [-ru
+       <arg>] [-rd <arg>] [-i <arg>] [-st <arg>] [-et <arg>] [-l <arg>]
+       [-n <arg>] [-tf <arg>] [-lf <arg>] [-h]
  -b,--broker <arg>        Broker URL. E.g., tcp://127.0.0.1:1883
  -v,--version <arg>       MQTT version ("3" for 3.1.1 or "5" for 5.0).
- -p,--npub <arg>          Number of publishers.
- -s,--nsub <arg>          Number of subscribers.
- -pq,--pubqos <arg>       QoS level of publishers (0/1/2).
- -sq,--subqos <arg>       QoS level of subscribers (0/1/2).
- -ss,--shsub              Enable shared subscription.
- -r,--retain              Enable retain.
- -t,--topic <arg>         Topic name to be used.
- -d,--payload <arg>       Data (payload) size in bytes.
- -m,--nmsg <arg>          Number of messages sent by each publisher.
- -i,--interval <arg>      Publish interval in milliseconds.
- -st,--subtimeout <arg>   Subscribers' timeout in seconds.
- -et,--exectime <arg>     Execution time in seconds.
- -l,--log <arg>           Log level (SEVERE/WARNING/INFO/ALL).
- -n,--ntp <arg>           NTP server. E.g., ntp.nict.jp
- -tf,--thfile <arg>       File name for throughput data.
- -lf,--ltfile <arg>       File name for latency data.
- -h,--help                Display help.
+  :
+  :
 ```
 
 For example, you can run MQTTLoader with one publisher that sends 10 messages and one subscriber by:
@@ -77,6 +62,8 @@ For example, the following command uses a public MQTT broker provided by HiveMQ.
 | -t \<arg\> | mqttloader-test-topic | Topic name to be used. |
 | -d \<arg\> | 1024 | The size of data (payload of messages to be published) in bytes. |
 | -m \<arg\> | 100 | Number of messages sent by **each** publisher. |
+| -ru \<arg\> | 0 | Ramp-up time in seconds. The beginning data within the specified time are excluded. |
+| -rd \<arg\> | 0 | Ramp-down time in seconds. The trailing data within the specified time are excluded. |
 | -i \<arg\> | 0 | Publish interval in milliseconds. |
 | -st \<arg\> | 5 | Timeout for receiving messages by subscribers in seconds. |
 | -et \<arg\> | 60 | Maximum execution time for measurement in seconds. |
@@ -132,6 +119,9 @@ Below is an example of calculating throughputs in the case that two publishers, 
 | 6 | 2 | 2 | 4 |
 | 7 | 0 | 0 | Excluded |
 | 8 | 0 | 0 | Excluded |
+
+By using the parameterse `-ru` and `-rd`, you can further exclude the beginning and trailing data.  
+Note that file output (by `-tf` and `-lf`) does not exclude data even if `-ru` and `-rd` are given.
 
 For subscribers, throughputs are calculated as same as the above for the received messages.  
 In addition, the maximum latency and the average latency are calculated.  

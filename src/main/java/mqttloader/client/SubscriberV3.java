@@ -2,9 +2,10 @@ package mqttloader.client;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.TreeMap;
 
 import mqttloader.Loader;
+import mqttloader.record.Latency;
+import mqttloader.record.Throughput;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -17,8 +18,8 @@ public class SubscriberV3 implements MqttCallback, ISubscriber {
     private MqttClient client;
     private final String clientId;
 
-    private TreeMap<Integer, Integer> throughputs = new TreeMap<>();
-    private ArrayList<Integer> latencies = new ArrayList<>();
+    private ArrayList<Throughput> throughputs = new ArrayList<>();
+    private ArrayList<Latency> latencies = new ArrayList<>();
 
     public SubscriberV3(int clientNumber, String broker, int qos, String topic) {
         clientId = CLIENT_ID_PREFIX + String.format("%06d", clientNumber);
@@ -51,11 +52,12 @@ public class SubscriberV3 implements MqttCallback, ISubscriber {
     }
 
     @Override
-    public TreeMap<Integer, Integer> getThroughputs() {
+    public ArrayList<Throughput> getThroughputs() {
         return throughputs;
     }
 
-    public ArrayList<Integer> getLatencies() {
+    @Override
+    public ArrayList<Latency> getLatencies() {
         return latencies;
     }
 
@@ -66,11 +68,19 @@ public class SubscriberV3 implements MqttCallback, ISubscriber {
     public void messageArrived(String topic, MqttMessage message) throws Exception {
         long time = Loader.getTime();
         int slot = (int)((time-Loader.startTime)/1000);
-        int count = throughputs.containsKey(slot) ? throughputs.get(slot)+1 : 1;
-        throughputs.put(slot, count);
+        if(throughputs.size()>0){
+            Throughput lastTh = throughputs.get(throughputs.size()-1);
+            if(lastTh.getSlot() == slot) {
+                lastTh.setCount(lastTh.getCount()+1);
+            }else{
+                throughputs.add(new Throughput(slot, 1));
+            }
+        }else{
+            throughputs.add(new Throughput(slot, 1));
+        }
 
         long pubTime = ByteBuffer.wrap(message.getPayload()).getLong();
-        latencies.add((int)(time-pubTime));
+        latencies.add(new Latency(slot, (int)(time-pubTime)));
 
         Loader.lastRecvTime = time;
 

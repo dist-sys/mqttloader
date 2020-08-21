@@ -10,7 +10,6 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Timer;
 import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
@@ -24,6 +23,7 @@ import mqttloader.client.Publisher;
 import mqttloader.client.PublisherV3;
 import mqttloader.client.Subscriber;
 import mqttloader.client.SubscriberV3;
+import mqttloader.record.Throughput;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -46,6 +46,8 @@ public class Loader {
     private String topic;
     private int payloadSize;    // In bytes. Minimum 8 bytes.
     private int numMessage; // Per client.
+    private int rampup; // In seconds.
+    private int rampdown; // In seconds.
     private int pubInterval;    // In milliseconds.
     private int subTimeout; // In seconds.
     private int execTime; // In seconds.
@@ -74,6 +76,8 @@ public class Loader {
         TOPIC("t"),
         PAYLOAD("d"),
         NUM_MSG("m"),
+        RAMP_UP("ru"),
+        RAMP_DOWN("rd"),
         INTERVAL("i"),
         SUB_TIMEOUT("st"),
         EXEC_TIME("et"),
@@ -150,6 +154,8 @@ public class Loader {
         options.addOption(Opt.TOPIC.name, "topic", true, "Topic name to be used.");
         options.addOption(Opt.PAYLOAD.name, "payload", true, "Data (payload) size in bytes.");
         options.addOption(Opt.NUM_MSG.name, "nmsg", true, "Number of messages sent by each publisher.");
+        options.addOption(Opt.RAMP_UP.name, "rampup", true, "Ramp-up time in seconds.");
+        options.addOption(Opt.RAMP_DOWN.name, "rampdown", true, "Ramp-down time in seconds.");
         options.addOption(Opt.INTERVAL.name, "interval", true, "Publish interval in milliseconds.");
         options.addOption(Opt.SUB_TIMEOUT.name, "subtimeout", true, "Subscribers' timeout in seconds.");
         options.addOption(Opt.EXEC_TIME.name, "exectime", true, "Execution time in seconds.");
@@ -193,6 +199,8 @@ public class Loader {
         topic = cmd.getOptionValue(Opt.TOPIC.name, "mqttloader-test-topic");
         payloadSize = Integer.valueOf(cmd.getOptionValue(Opt.PAYLOAD.name, "1024"));
         numMessage = Integer.valueOf(cmd.getOptionValue(Opt.NUM_MSG.name, "100"));
+        rampup = Integer.valueOf(cmd.getOptionValue(Opt.RAMP_UP.name, "0"));
+        rampdown = Integer.valueOf(cmd.getOptionValue(Opt.RAMP_DOWN.name, "0"));
         pubInterval = Integer.valueOf(cmd.getOptionValue(Opt.INTERVAL.name, "0"));
         subTimeout = Integer.valueOf(cmd.getOptionValue(Opt.SUB_TIMEOUT.name, "5"));
         execTime = Integer.valueOf(cmd.getOptionValue(Opt.EXEC_TIME.name, "60"));
@@ -277,54 +285,51 @@ public class Loader {
 
     private void printPubResult() {
         TreeMap<Integer, Integer> thTotal = new TreeMap<>();
-        int maxSlot = 0;
+
         for(IPublisher pub: publishers){
-            if(pub.getThroughputs().lastKey() > maxSlot){
-                maxSlot = pub.getThroughputs().lastKey();
-            }
-        }
-
-        boolean beforeStart = true;
-        for(int i=0;i<maxSlot+1;i++){
-            int count = 0;
-            for(IPublisher pub: publishers){
-                if(pub.getThroughputs().containsKey(i)){
-                    count += pub.getThroughputs().get(i);
-                }
-            }
-
-            if(beforeStart){
-                if(count==0){
-                    continue;
+            ArrayList<Throughput> pubth = pub.getThroughputs();
+            for(Throughput th : pubth) {
+                if(thTotal.containsKey(th.getSlot())){
+                    thTotal.put(th.getSlot(), thTotal.get(th.getSlot())+th.getCount());
                 }else{
-                    beforeStart = false;
+                    thTotal.put(th.getSlot(), th.getCount());
                 }
             }
-            thTotal.put(i, count);
         }
 
-        for(Iterator<Integer> it = thTotal.descendingKeySet().iterator();it.hasNext();){
-            int key = it.next();
-            if(thTotal.get(key)>0) break;
-            it.remove();
+        for(int i=thTotal.firstKey(); i<=thTotal.lastKey(); i++){
+            if(!thTotal.containsKey(i)){
+                thTotal.put(i, 0);
+            }
         }
 
         int maxTh = 0;
         int sumMsg = 0;
-        for(int th: thTotal.values()){
+        int count = 0;
+        for(int slot: thTotal.keySet()){
+            if(slot < rampup || slot > thTotal.lastKey()-rampdown){
+                continue;
+            }
+
+            int th = thTotal.get(slot);
             if(th > maxTh) maxTh = th;
             sumMsg += th;
+            count++;
         }
-        double aveTh = thTotal.size()>0 ? (double)sumMsg/thTotal.size() : 0;
+        double aveTh = count>0 ? (double)sumMsg/count : 0;
 
         System.out.println("-----Publisher-----");
         System.out.println("Maximum throughput[msg/s]: "+maxTh);
         System.out.println("Average throughput[msg/s]: "+aveTh);
         System.out.println("Number of published messages: "+sumMsg);
         System.out.print("Throughput[msg/s]: ");
-        for(int key: thTotal.keySet()){
-            System.out.print(thTotal.get(key));
-            if(key<thTotal.lastKey()){
+        for(int slot: thTotal.keySet()){
+            if(slot < rampup || slot > thTotal.lastKey()-rampdown){
+                continue;
+            }
+
+            System.out.print(thTotal.get(slot));
+            if(slot<thTotal.lastKey()-rampdown){
                 System.out.print(", ");
             }
         }
@@ -333,52 +338,49 @@ public class Loader {
 
     private void printSubResult() {
         TreeMap<Integer, Integer> thTotal = new TreeMap<>();
-        int maxSlot = 0;
+
         for(ISubscriber sub: subscribers){
-            if(sub.getThroughputs().size()==0) continue;
-            if(sub.getThroughputs().lastKey() > maxSlot){
-                maxSlot = sub.getThroughputs().lastKey();
-            }
-        }
-
-        boolean beforeStart = true;
-        for(int i=0;i<maxSlot+1;i++){
-            int count = 0;
-            for(ISubscriber sub: subscribers){
-                if(sub.getThroughputs().containsKey(i)){
-                    count += sub.getThroughputs().get(i);
-                }
-            }
-
-            if(beforeStart){
-                if(count==0){
-                    continue;
+            ArrayList<Throughput> subth = sub.getThroughputs();
+            for(Throughput th : subth) {
+                if(thTotal.containsKey(th.getSlot())){
+                    thTotal.put(th.getSlot(), thTotal.get(th.getSlot())+th.getCount());
                 }else{
-                    beforeStart = false;
+                    thTotal.put(th.getSlot(), th.getCount());
                 }
             }
-            thTotal.put(i, count);
         }
 
-        for(Iterator<Integer> it = thTotal.descendingKeySet().iterator();it.hasNext();){
-            int key = it.next();
-            if(thTotal.get(key)>0) break;
-            it.remove();
+        for(int i=thTotal.firstKey(); i<=thTotal.lastKey(); i++){
+            if(!thTotal.containsKey(i)){
+                thTotal.put(i, 0);
+            }
         }
 
         int maxTh = 0;
         int sumMsg = 0;
-        for(int th: thTotal.values()){
+        int count = 0;
+        for(int slot: thTotal.keySet()){
+            if(slot < rampup || slot > thTotal.lastKey()-rampdown){
+                continue;
+            }
+
+            int th = thTotal.get(slot);
             if(th > maxTh) maxTh = th;
             sumMsg += th;
+            count++;
         }
-        double aveTh = thTotal.size()>0 ? (double)sumMsg/thTotal.size() : 0;
+        double aveTh = count>0 ? (double)sumMsg/count : 0;
 
         int maxLt = 0;
         long sumLt = 0;
         for(ISubscriber sub: subscribers){
             for(int i=0;i<sub.getLatencies().size();i++){
-                int lt = sub.getLatencies().get(i);
+                int slot = sub.getLatencies().get(i).getSlot();
+                if(slot < rampup || slot > thTotal.lastKey()-rampdown){
+                    continue;
+                }
+
+                int lt = sub.getLatencies().get(i).getLatency();
                 if(lt > maxLt) maxLt = lt;
                 sumLt += lt;
             }
@@ -390,9 +392,13 @@ public class Loader {
         System.out.println("Average throughput[msg/s]: "+aveTh);
         System.out.println("Number of received messages: "+sumMsg);
         System.out.print("Throughput[msg/s]: ");
-        for(int key: thTotal.keySet()){
-            System.out.print(thTotal.get(key));
-            if(key<thTotal.lastKey()){
+        for(int slot: thTotal.keySet()){
+            if(slot < rampup || slot > thTotal.lastKey()-rampdown){
+                continue;
+            }
+
+            System.out.print(thTotal.get(slot));
+            if(slot<thTotal.lastKey()-rampdown){
                 System.out.print(", ");
             }
         }
@@ -413,34 +419,46 @@ public class Loader {
         }
         sb.append("\n");
 
-        int slot = 0;
-        while(true) {
-            StringBuilder lineSb = new StringBuilder();
-            boolean hasNext = false;
-            lineSb.append(slot);
-            for(int i=0;i<publishers.size();i++){
-                int th = 0;
-                if(publishers.get(i).getThroughputs().containsKey(slot)){
-                    th = publishers.get(i).getThroughputs().get(slot);
-                    hasNext = true;
+
+        // slot, <pub-id, count>
+        TreeMap<Integer, TreeMap<Integer, Integer>> thAggregate = new TreeMap<>();
+        for(int i=0;i<publishers.size();i++){
+            ArrayList<Throughput> pubth = publishers.get(i).getThroughputs();
+            for(Throughput th: pubth) {
+                if(!thAggregate.containsKey(th.getSlot())){
+                    TreeMap<Integer, Integer> map = new TreeMap<>();
+                    thAggregate.put(th.getSlot(), map);
                 }
-                lineSb.append(", "+th);
+                thAggregate.get(th.getSlot()).put(i, th.getCount());
             }
-            for(int i=0;i<subscribers.size();i++){
-                int th = 0;
-                if(subscribers.get(i).getThroughputs().containsKey(slot)){
-                    th = subscribers.get(i).getThroughputs().get(slot);
-                    hasNext = true;
+        }
+        for(int i=0;i<subscribers.size();i++){
+            ArrayList<Throughput> subth = subscribers.get(i).getThroughputs();
+            for(Throughput th: subth) {
+                if(!thAggregate.containsKey(th.getSlot())){
+                    TreeMap<Integer, Integer> map = new TreeMap<>();
+                    thAggregate.put(th.getSlot(), map);
                 }
-                lineSb.append(", "+th);
+                thAggregate.get(th.getSlot()).put(i+publishers.size(), th.getCount());
+            }
+        }
+
+        int numClients = publishers.size()+subscribers.size();
+        for(int slot=0;slot<thAggregate.lastKey()+1;slot++){
+            StringBuilder lineSb = new StringBuilder();
+            lineSb.append(slot);
+
+            for(int i=0;i<numClients;i++) {
+                if (thAggregate.containsKey(slot)) {
+                    if (thAggregate.get(slot).containsKey(i)) {
+                        lineSb.append(", " + thAggregate.get(slot).get(i));
+                        continue;
+                    }
+                }
+                lineSb.append(", " + 0);
             }
             lineSb.append("\n");
-            if(hasNext){
-                slot++;
-                sb.append(lineSb);
-            }else{
-                break;
-            }
+            sb.append(lineSb);
         }
 
         output(thFile, sb.toString(), false);
@@ -462,7 +480,7 @@ public class Loader {
             for(int i=0;i<subscribers.size();i++){
                 int lt = 0;
                 if(subscribers.get(i).getLatencies().size()>index){
-                    lt = subscribers.get(i).getLatencies().get(index);
+                    lt = subscribers.get(i).getLatencies().get(index).getLatency();
                     hasNext = true;
                 }
                 if(i>0) lineSb.append(", ");
