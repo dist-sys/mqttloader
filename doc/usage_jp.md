@@ -54,14 +54,14 @@ MQTTLoaderの動作を確認するだけなら、パブリックブローカを�
 |:-----------|:------------|:------------|
 | -b \<arg\> | （無し） | 指定必須。ブローカのURL。<br>例：`tcp://127.0.0.1:1883` |
 | -v \<arg\> | 5 | MQTTバージョン。 `3` を指定するとMQTT v3.1.1、`5` を指定するとMQTT v5.0。 |
-| -p \<arg\> | 10 | publisher数。2以上の場合、全publisherは同じトピックにメッセージを送信。 |
-| -s \<arg\> | 0 | subscriber数。2以上の場合、全subscriberは同じトピックをsubscribe。 |
+| -p \<arg\> | 1 | publisher数。2以上の場合、全publisherは同じトピックにメッセージを送信。 |
+| -s \<arg\> | 1 | subscriber数。2以上の場合、全subscriberは同じトピックをsubscribe。 |
 | -pq \<arg\> | 0 | publisherが送信するメッセージのQoSレベル。<br>設定可能な値：0/1/2 |
 | -sq \<arg\> | 0 | subscriber側のQoSレベル。<br>設定可能な値：0/1/2 |
 | -ss |  | Shared subscriptionを有効にするかどうか（デフォルト：無効）。MQTT v5.0でのみ設定可。<br>有効にすると、各メッセージは全subscriberのうちいずれかひとつに届く。 |
 | -r |  | publisherの送信メッセージにてRetainを有効にするかどうか（デフォルト：無効）。 |
 | -t \<arg\> | mqttloader-test-topic | 測定で用いられるトピック名 |
-| -d \<arg\> | 1024 | publisherが送信するメッセージのデータサイズ（MQTTパケットのペイロードサイズ）。単位はbyte。 |
+| -d \<arg\> | 20 | publisherが送信するメッセージのデータサイズ（MQTTパケットのペイロードサイズ）。単位はbyte。 |
 | -m \<arg\> | 100 | **各**publisherによって送信されるメッセージの数。 |
 | -ru \<arg\> | 0 | ランプアップ時間。単位は秒。<br>詳細は **4. 測定結果の見方** を参照。 |
 | -rd \<arg\> | 0 | ランプダウン時間。単位は秒。<br>詳細は **4. 測定結果の見方** を参照。 |

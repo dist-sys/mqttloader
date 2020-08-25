@@ -53,14 +53,14 @@ For example, the following command uses a public MQTT broker provided by HiveMQ.
 |:-----------|:------------|:------------|
 | -b \<arg\> | (none) | Mandatory parameter. URL of the broker. <br>Ex. `tcp://127.0.0.1:1883` |
 | -v \<arg\> | 5 | MQTT version. `3` for MQTT v3.1.1, and `5` for MQTT v5.0. |
-| -p \<arg\> | 10 | Number of publishers. All publishers send messages to a same topic. |
-| -s \<arg\> | 0 | Number of subscribers. All subscribers are subscribe to a same topic. |
+| -p \<arg\> | 1 | Number of publishers. All publishers send messages to a same topic. |
+| -s \<arg\> | 1 | Number of subscribers. All subscribers are subscribe to a same topic. |
 | -pq \<arg\> | 0 | QoS level of publishers. <br>Valid values are 0/1/2. |
 | -sq \<arg\> | 0 | QoS level of subscribers. <br>Valid values are 0/1/2. |
 | -ss |  | Enable shared subscription. By default, it is disabled. Valid for only MQTT v5.0. <br>If it is enabled, a message is delivered to one of the subscribers. |
 | -r |  | Enable retain for the messages sent by publishers. By default, it is disabled. |
 | -t \<arg\> | mqttloader-test-topic | Topic name to be used. |
-| -d \<arg\> | 1024 | The size of data (payload of messages to be published) in bytes. |
+| -d \<arg\> | 20 | The size of data (payload of messages to be published) in bytes. |
 | -m \<arg\> | 100 | Number of messages sent by **each** publisher. |
 | -ru \<arg\> | 0 | Ramp-up time in seconds. <br>See **4. How to read the results** for details. |
 | -rd \<arg\> | 0 | Ramp-down time in seconds. <br>See **4. How to read the results** for details. |
