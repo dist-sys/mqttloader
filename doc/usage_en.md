@@ -51,37 +51,37 @@ For example, the following command uses a public MQTT broker provided by HiveMQ.
 
 | Parameter | Default value | Description |
 |:-----------|:------------|:------------|
-| -b \<arg\> | (none) | Mandatory parameter. URL of the broker, e.g., `tcp://127.0.0.1:1883`. |
+| -b \<arg\> | (none) | Mandatory parameter. URL of the broker. <br>Ex. `tcp://127.0.0.1:1883` |
 | -v \<arg\> | 5 | MQTT version. `3` for MQTT v3.1.1, and `5` for MQTT v5.0. |
 | -p \<arg\> | 10 | Number of publishers. All publishers send messages to a same topic. |
 | -s \<arg\> | 0 | Number of subscribers. All subscribers are subscribe to a same topic. |
-| -pq \<arg\> | 0 | QoS level of publishers. Valid values are 0/1/2. |
-| -sq \<arg\> | 0 | QoS level of subscribers. Valid values are 0/1/2. |
-| -ss |  | Enable shared subscription. By default, shared subscription is disabled. Valid for only MQTT v5.0. If it is enabled, a message is delivered to one of the subscribers. |
-| -r |  | Enable retain for the messages sent by publishers. By default, retain is disabled. |
+| -pq \<arg\> | 0 | QoS level of publishers. <br>Valid values are 0/1/2. |
+| -sq \<arg\> | 0 | QoS level of subscribers. <br>Valid values are 0/1/2. |
+| -ss |  | Enable shared subscription. By default, it is disabled. Valid for only MQTT v5.0. <br>If it is enabled, a message is delivered to one of the subscribers. |
+| -r |  | Enable retain for the messages sent by publishers. By default, it is disabled. |
 | -t \<arg\> | mqttloader-test-topic | Topic name to be used. |
 | -d \<arg\> | 1024 | The size of data (payload of messages to be published) in bytes. |
 | -m \<arg\> | 100 | Number of messages sent by **each** publisher. |
-| -ru \<arg\> | 0 | Ramp-up time in seconds. The beginning data within the specified time are excluded. |
-| -rd \<arg\> | 0 | Ramp-down time in seconds. The trailing data within the specified time are excluded. |
+| -ru \<arg\> | 0 | Ramp-up time in seconds. <br>See **4. How to read the results** for details. |
+| -rd \<arg\> | 0 | Ramp-down time in seconds. <br>See **4. How to read the results** for details. |
 | -i \<arg\> | 0 | Publish interval in milliseconds. |
 | -st \<arg\> | 5 | Timeout for receiving messages by subscribers in seconds. |
 | -et \<arg\> | 60 | Maximum execution time for measurement in seconds. |
-| -l \<arg\> | WARNING | Log level. Valid values are `SEVERE`/`WARNING`/`INFO`/`ALL`. |
-| -n \<arg\> | (none) | URL of the NTP server, e.g., `ntp.nict.jp`. By default, time synchronization is disabled. |
+| -l \<arg\> | WARNING | Log level. <br>Valid values are `SEVERE`/`WARNING`/`INFO`/`ALL`. |
+| -n \<arg\> | (none) | URL of the NTP server. By setting this, time synchronization is enabled. <br>Ex. `ntp.nict.jp` |
 | -tf \<arg\> | (none) | File name to write out the throughput data. By default, file output is disabled. |
 | -lf \<arg\> | (none) | File name to write out the latency data. By default, file output is disabled. |
 | -h |  | Display help. |
 
 MQTTLoader starts to terminate when all of the following conditions are met.  
-- (If the number of publishers is one or more) All publishers complete to send out messages.
-- (If the number of subscribers is one or more) The time specified by the parameter `-st` elapses from the last time subscribers receive a message.
+- All publishers complete to send out messages.
+- The time specified by the parameter `-st` elapses from the last time subscribers receive a message.
 
 MQTTLoader also starts to terminate when the time specified by the parameter `-et` elapses, even if there are in-flight messages.  
 Thus, `-et` should be long sufficiently.
 
-The parameter `-n` might be useful for running multiple MQTTLoader on different machines.  
-By setting this parameter, MQTTLoader obtains the offset time from the specified NTP server and reflects it to calculate throughput and latency.
+By setting the parameter `-n`, MQTTLoader obtains the offset time from the specified NTP server and reflects it to calculate throughput and latency.  
+It might be useful for running multiple MQTTLoader on different machines.  
 
 ## 4. How to read the results
 ### Summary to standard output
@@ -105,7 +105,7 @@ Average latency[ms]: 42.23691
 For each publisher, MQTTLoader counts the number of messages sent for each second.  
 After completion, MQTTLoader collects the counted numbers from all publishers and calculates the maximum throughput, the average throughput, and the number of published messages.  
 `Throughput[msg/s]` is the list of throughputs, which are the sum of each second for all publishers.  
-Note that these calculation exclude the beginning and trailing seconds that have 0 messages.
+Note that these calculation exclude the beginning and trailing seconds that have 0 messages.  
 Below is an example of calculating throughputs in the case that two publishers, A and B, send messages.
 
 | Elapsed seconds from starting measurement | # of meessages from A | # of messages from B | Throughputs |
@@ -139,6 +139,7 @@ Thus, when running multiple MQTTLoader on different machines (e.g., publishers o
 
 ### Data to file
 By specifying the file name with `-tf` parameter, you can obtain throughput data like the following.
+
 ```
 SLOT, mqttloaderclient-pub000000, mqttloaderclient-sub000000
 0, 11955, 11218
@@ -149,9 +150,10 @@ SLOT, mqttloaderclient-pub000000, mqttloaderclient-sub000000
 5, 16536, 17296
 ```
 This indicates the throughput for each second for each publisher.  
-As with the summary data displayed in the standard outuput, these data exclude the beginning and trailing seconds that have 0 messages.
+The data that used to calculate the summary data in the standard output is written out.
 
 By specifying the file name with `-lf` parameter, you can obtain latency data like the following.
+
 ```
 mqttloaderclient-sub000000, mqttloaderclient-sub000001
 7, 7
