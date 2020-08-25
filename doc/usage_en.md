@@ -181,7 +181,7 @@ To build MQTTLoader, JDK and Gradle with the following versions are required.
 
 Older versions might work, but are not tested.
 
-## 5-b. Download
+### 5-b. Download
 Clone the MQTTLoader repository from GitHub: `$ git clone git@github.com:dist-sys/mqttloader.git`  
 The structure of the directories/files is as follows:
 
@@ -196,7 +196,7 @@ mqttloader
 
 Hereafter, the name of the root directory, where the file `build.gradle` exists, is denoted as *\<ROOT_DIR\>*.
 
-## 5-c. Build
+### 5-c. Build
 Open a terminal software (e.g., xterm, command prompt, etc.) and you can build by the following Gradle command.
 ```
 $ cd <ROOT_DIR>
@@ -215,7 +215,7 @@ You can find *distributions* directory under the *build* directory.
 ```
 By extracting the archive file (tar or zip), you can get the binary files of MQTTLoader.
 
-## 5-d. Run MQTTLoader with Gradle
+### 5-d. Run MQTTLoader with Gradle
 You can run MQTTLoader by using Gradle command.
 
 In *\<ROOT_DIR\>/build.gradle*, the execution parameters are stated in the following part:
