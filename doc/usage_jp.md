@@ -47,6 +47,24 @@ MQTTLoaderの動作を確認するだけなら、パブリックブローカを�
 
 `$ ./mqttloader -b tcp://broker.hivemq.com:1883 -p 1 -s 1 -m 10`
 
+### 複数台での実行
+publisherとsubscriberを別マシンで動かす、等、複数台のマシン上でMQTTLoaderを動かすこともできます。  
+例えば、ホストA上で以下のように実行します。
+
+`$ ./mqttloader -b tcp://<IP>:<PORT> -p 0 -s 1 -st 20 -n <NTP-SERVER>`
+
+続いて、ホストB上で以下のように実行します。
+
+`$ ./mqttloader -b tcp://<IP>:<PORT> -p 1 -s 0 -m 10 -n <NTP-SERVER>`
+
+これにより、ホストB上のpublisherから、ホストA上のsubscriberへ、ブローカを経由してメッセージが流れます。  
+複数台で実行する場合、以下のパラメータ設定に留意してください。
+
+- `-n` にて同じNTPサーバを指定すること  
+- `-st` にてsubscriberの受信タイムアウト時間を十分に長くとること  
+
+前者はレイテンシ計算の正確性を上げるため、後者はpublisher側のプログラムを実行する前にsubscriberがタイムアウトしてしまうことを防ぐため、です。  
+各パラメータの詳細については **3. MQTTLoaderのパラメータ** を参照してください。
 
 ## 3. MQTTLoaderのパラメータ
 
