@@ -46,6 +46,24 @@ For example, the following command uses a public MQTT broker provided by HiveMQ.
 
 `$ ./mqttloader -b tcp://broker.hivemq.com:1883 -p 1 -s 1 -m 10`
 
+### Run on multiple machines
+You can run MQTTLoader on multiple machines, e.g., run publishers and subscribers separately on different machines.  
+For example, on a host A, you can run MQTTLoader as follows:
+
+`$ ./mqttloader -b tcp://<IP>:<PORT> -p 0 -s 1 -st 20 -n <NTP-SERVER>`
+
+Subsequently, you can run another MQTTLoader on a host B as follows:
+
+`$ ./mqttloader -b tcp://<IP>:<PORT> -p 1 -s 0 -m 10 -n <NTP-SERVER>`
+
+By these, from the publisher on host B to the subscriber on the host A via the broker, MQTT messages are delivered.  
+When running on multiple machines, the following parameter settings should be considered.
+
+- Specify the same NTP server on host A and host B with the parameter `-n`.  
+- Specify enough long timeout period with the parameter `-st`.  
+
+The former is to improve the accuracy of latency calculation, whereas the latter is to avoid that the subscriber terminates by timeout before starting the publisher.  
+Please refer to **3. Parameteres of MQTTLoader** for more details of each parameter.
 
 ## 3. Parameteres of MQTTLoader
 
