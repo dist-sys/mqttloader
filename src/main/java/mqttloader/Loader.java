@@ -51,9 +51,9 @@ public class Loader {
     private CommandLine cmd = null;
     private ArrayList<IClient> publishers = new ArrayList<>();
     private ArrayList<IClient> subscribers = new ArrayList<>();
-    public static long startTime;
-    public static long offset = 0;
-    public static long lastRecvTime;
+    public static volatile long startTime;
+    public static volatile long offset = 0;
+    public static volatile long lastRecvTime;
     public static CountDownLatch countDownLatch;
     public static Logger logger = Logger.getLogger(Loader.class.getName());
 
@@ -202,10 +202,12 @@ public class Loader {
             logger.info("Offset is "+offset+" milliseconds.");
         }
 
-        startTime = Util.getTime();
+        // delay: Give ScheduledExecutorService time to setup scheduling.
+        long delay = publishers.size();
+        startTime = Util.getTime() + delay;
         lastRecvTime = startTime;
         for(IClient pub: publishers){
-            pub.start();
+            pub.start(delay);
         }
     }
 

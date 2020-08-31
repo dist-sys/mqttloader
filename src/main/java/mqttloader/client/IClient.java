@@ -23,7 +23,7 @@ import mqttloader.record.Throughput;
 
 public interface IClient {
     String getClientId();
-    void start();
+    void start(long delay);
     void disconnect();
     ArrayList<Throughput> getThroughputs();
     ArrayList<Latency> getLatencies();
