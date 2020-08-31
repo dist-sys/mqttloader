@@ -63,7 +63,7 @@ public class Subscriber implements MqttCallback, IClient {
     }
 
     @Override
-    public void start(){
+    public void start(long delay){
     }
 
     @Override
@@ -100,19 +100,23 @@ public class Subscriber implements MqttCallback, IClient {
     public void messageArrived(String topic, MqttMessage message) throws Exception {
         long time = Util.getTime();
         int slot = (int)((time-Loader.startTime)/1000);
-        if(throughputs.size()>0){
-            Throughput lastTh = throughputs.get(throughputs.size()-1);
-            if(lastTh.getSlot() == slot) {
-                lastTh.setCount(lastTh.getCount()+1);
+        synchronized (throughputs) {
+            if(throughputs.size()>0){
+                Throughput lastTh = throughputs.get(throughputs.size()-1);
+                if(lastTh.getSlot() == slot) {
+                    lastTh.setCount(lastTh.getCount()+1);
+                }else{
+                    throughputs.add(new Throughput(slot, 1));
+                }
             }else{
                 throughputs.add(new Throughput(slot, 1));
             }
-        }else{
-            throughputs.add(new Throughput(slot, 1));
         }
 
         long pubTime = ByteBuffer.wrap(message.getPayload()).getLong();
-        latencies.add(new Latency(slot, (int)(time-pubTime)));
+        synchronized (latencies) {
+            latencies.add(new Latency(slot, (int)(time-pubTime)));
+        }
 
         Loader.lastRecvTime = time;
 

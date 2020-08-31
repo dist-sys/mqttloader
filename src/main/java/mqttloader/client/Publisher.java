@@ -19,8 +19,9 @@ package mqttloader.client;
 import static mqttloader.Constants.PUB_CLIENT_ID_PREFIX;
 
 import java.util.ArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import mqttloader.Loader;
@@ -35,17 +36,19 @@ import org.eclipse.paho.mqttv5.common.MqttMessage;
 public class Publisher implements Runnable, IClient {
     private MqttClient client;
     private final String clientId;
-    private String topic;
-    private int payloadSize;
+    private final String topic;
+    private final int payloadSize;
     private int numMessage;
-    private int pubInterval;
+    private final int pubInterval;
     private MqttMessage message = new MqttMessage();
-    private boolean hasInterval;
 
+    // If change publisher to be multi-threaded, throughputs (and others) should be thread-safe.
     private ArrayList<Throughput> throughputs = new ArrayList<>();
 
-    private ScheduledThreadPoolExecutor service;
+    private ScheduledExecutorService service;
     private ScheduledFuture future;
+
+    private volatile boolean cancelled = false;
 
     public Publisher(int clientNumber, String broker, int qos, boolean retain, String topic, int payloadSize, int numMessage, int pubInterval) {
         message.setQos(qos);
@@ -54,7 +57,6 @@ public class Publisher implements Runnable, IClient {
         this.payloadSize = payloadSize;
         this.numMessage = numMessage;
         this.pubInterval = pubInterval;
-        hasInterval = pubInterval > 0;
 
         clientId = PUB_CLIENT_ID_PREFIX + String.format("%06d", clientNumber);
         MqttConnectionOptions options = new MqttConnectionOptions();
@@ -68,18 +70,48 @@ public class Publisher implements Runnable, IClient {
     }
 
     @Override
-    public void start() {
-        service = new ScheduledThreadPoolExecutor(1);
+    public void start(long delay) {
+        service = Executors.newSingleThreadScheduledExecutor();
         if(pubInterval==0){
-            future = service.schedule(this, 0, TimeUnit.MILLISECONDS);
+            future = service.schedule(this, delay, TimeUnit.MILLISECONDS);
         }else{
-            future = service.scheduleAtFixedRate(this, 0, pubInterval, TimeUnit.MILLISECONDS);
+            future = service.scheduleAtFixedRate(this, delay, pubInterval, TimeUnit.MILLISECONDS);
         }
     }
 
-    public void terminate() {
-        service.shutdown();
+    @Override
+    public void run() {
+        if(!client.isConnected()) {
+            Loader.countDownLatch.countDown();
+        } else {
+            if(pubInterval==0){
+                continuousRun();
+            }else{
+                periodicalRun();
+            }
+        }
+    }
+
+    public void continuousRun() {
+        for(int i=0;i<numMessage;i++){
+            if(cancelled) {
+                break;
+            }
+            publish();
+        }
+
         Loader.countDownLatch.countDown();
+    }
+
+    public void periodicalRun() {
+        if(numMessage > 0) {
+            publish();
+
+            numMessage--;
+            if(numMessage==0){
+                Loader.countDownLatch.countDown();
+            }
+        }
     }
 
     public void publish() {
@@ -105,42 +137,18 @@ public class Publisher implements Runnable, IClient {
         Loader.logger.fine("Published a message (" + topic + "): "+clientId);
     }
 
-    public void periodicalRun() {
-        publish();
-
-        numMessage--;
-        if(numMessage==0){
-            terminate();
-        }
-    }
-
-    public void continuousRun() {
-        for(int i=0;i<numMessage;i++){
-            if(future.isCancelled()) break;
-            publish();
-        }
-
-        terminate();
-    }
-
-    @Override
-    public void run() {
-        if(!client.isConnected()) {
-            terminate();
-        }
-
-        if(pubInterval==0){
-            continuousRun();
-        }else{
-            periodicalRun();
-        }
-    }
-
     @Override
     public void disconnect() {
         if(!future.isDone()) {
+            cancelled = true;
             future.cancel(false);
-            service.shutdown();
+        }
+
+        service.shutdown();
+        try {
+            service.awaitTermination(1, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
 
         try {
