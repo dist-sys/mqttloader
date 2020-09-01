@@ -66,6 +66,7 @@ public class PublisherV3 implements Runnable, IClient {
             client.connect(options);
             Loader.logger.info("Publisher client is connected: "+clientId);
         } catch (MqttException e) {
+            Loader.logger.warning("Publisher client fails to connect: "+clientId);
             e.printStackTrace();
         }
     }
@@ -82,27 +83,27 @@ public class PublisherV3 implements Runnable, IClient {
 
     @Override
     public void run() {
-        if(!client.isConnected()) {
-            Loader.countDownLatch.countDown();
-        } else {
-            if(pubInterval==0){
-                continuousRun();
-            }else{
-                periodicalRun();
-            }
+        if(pubInterval==0){
+            continuousRun();
+        }else{
+            periodicalRun();
         }
     }
 
     public void continuousRun() {
         for(int i=0;i<numMessage;i++){
             if (cancelled) {
+                Loader.logger.info("Publish task is cancelled: "+clientId);
                 break;
             }
             if (client.isConnected()) {
                 publish();
+            } else {
+                Loader.logger.warning("On sending publish, client was not connected: "+clientId);
             }
         }
 
+        Loader.logger.info("Publisher finishes to send publish: "+clientId);
         Loader.countDownLatch.countDown();
     }
 
@@ -110,10 +111,13 @@ public class PublisherV3 implements Runnable, IClient {
         if(numMessage > 0) {
             if (client.isConnected()) {
                 publish();
+            } else {
+                Loader.logger.warning("On sending publish, client was not connected: "+clientId);
             }
 
             numMessage--;
             if(numMessage==0){
+                Loader.logger.info("Publisher finishes to send publish: "+clientId);
                 Loader.countDownLatch.countDown();
             }
         }
@@ -124,6 +128,7 @@ public class PublisherV3 implements Runnable, IClient {
         try {
             client.publish(topic, message);
         } catch (MqttException e) {
+            Loader.logger.warning("On sending publish, MqttException occurred: "+clientId);
             e.printStackTrace();
         }
 
@@ -159,6 +164,7 @@ public class PublisherV3 implements Runnable, IClient {
         if (client.isConnected()) {
             try {
                 client.disconnect();
+                Loader.logger.info("Publisher client is disconnected: "+clientId);
             } catch (MqttException e) {
                 e.printStackTrace();
             }

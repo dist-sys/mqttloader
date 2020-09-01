@@ -103,6 +103,12 @@ public class Loader {
             e.printStackTrace();
         }
 
+        if(countDownLatch.getCount()>0) {
+            logger.info("Measurement timed out.");
+        } else {
+            logger.info("Measurement completed.");
+        }
+
         timer.cancel();
 
         logger.info("Terminating clients.");
@@ -172,13 +178,22 @@ public class Loader {
         int pubInterval = Integer.valueOf(cmd.getOptionValue(Opt.INTERVAL.getName(), Opt.INTERVAL.getDefaultValue()));
 
         for(int i=0;i<numPub;i++){
+            if(i == 0) {
+                logger.info("Publishers start to connect.");
+            }
+
             if(version==5){
                 publishers.add(new Publisher(i, broker, pubQos, retain, topic, payloadSize, numMessage, pubInterval));
             }else{
                 publishers.add(new PublisherV3(i, broker, pubQos, retain, topic, payloadSize, numMessage, pubInterval));
             }
         }
+
         for(int i=0;i<numSub;i++){
+            if(i == 0) {
+                logger.info("Subscribers start to connect.");
+            }
+
             if(version==5){
                 subscribers.add(new Subscriber(i, broker, subQos, shSub, topic));
             }else{
@@ -214,6 +229,8 @@ public class Loader {
                 ti.computeDetails();
                 offset = ti.getOffset();
                 logger.info("Offset is "+offset+" milliseconds.");
+            } else {
+                logger.warning("Failed to get time information from NTP server.");
             }
         }
 
@@ -227,11 +244,20 @@ public class Loader {
     }
 
     private void disconnectClients() {
-        for(IClient pub: publishers){
-            pub.disconnect();
+        for(int i=0;i<publishers.size();i++){
+            if(i == 0) {
+                logger.info("Publishers start to disconnect.");
+            }
+
+            publishers.get(i).disconnect();
         }
-        for(IClient sub: subscribers){
-            sub.disconnect();
+
+        for(int i=0;i<subscribers.size();i++){
+            if(i == 0) {
+                logger.info("Subscribers start to disconnect.");
+            }
+
+            subscribers.get(i).disconnect();
         }
     }
 

@@ -4,7 +4,7 @@ plugins {
 }
 
 mainClassName = 'mqttloader.Loader'
-applicationDefaultJvmArgs = ['-Djava.util.logging.config.file=src/dist/logging.properties', '-Dfile.encoding=UTF-8']
+applicationDefaultJvmArgs = ['-Djava.util.logging.config.file=src/dist/logging.properties', '-Dfile.encoding=UTF-8', '--illegal-access=deny']
 
 repositories {
     mavenCentral()

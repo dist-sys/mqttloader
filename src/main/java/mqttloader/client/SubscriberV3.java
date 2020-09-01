@@ -52,6 +52,7 @@ public class SubscriberV3 implements MqttCallback, IClient {
             client.subscribe(topic, qos);
             Loader.logger.info("Subscribed (" + topic + ", QoS:" + qos + "): " + clientId);
         } catch (MqttException e) {
+            Loader.logger.warning("Subscriber client fails to connect: "+clientId);
             e.printStackTrace();
         }
     }
@@ -65,6 +66,7 @@ public class SubscriberV3 implements MqttCallback, IClient {
         if (client.isConnected()) {
             try {
                 client.disconnect();
+                Loader.logger.info("Subscriber client is disconnected: "+clientId);
             } catch (MqttException e) {
                 e.printStackTrace();
             }

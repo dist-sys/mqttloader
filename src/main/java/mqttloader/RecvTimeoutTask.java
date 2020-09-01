@@ -35,6 +35,7 @@ public class RecvTimeoutTask extends TimerTask {
     public void run() {
         long remainingTime = subTimeout*1000 - (Util.getTime() - lastRecvTime);  // <timeout> - <elapsed time>
         if (remainingTime <= 0) {
+            Loader.logger.info("Receiving messages on subscribers timed out.");
             countDownLatch.countDown();
         } else {
             timer.schedule(new RecvTimeoutTask(timer, subTimeout), remainingTime);
