@@ -97,7 +97,9 @@ public class Publisher implements Runnable, IClient {
             if(cancelled) {
                 break;
             }
-            publish();
+            if(client.isConnected()) {
+                publish();
+            }
         }
 
         Loader.countDownLatch.countDown();
@@ -105,7 +107,9 @@ public class Publisher implements Runnable, IClient {
 
     public void periodicalRun() {
         if(numMessage > 0) {
-            publish();
+            if(client.isConnected()) {
+                publish();
+            }
 
             numMessage--;
             if(numMessage==0){
@@ -151,10 +155,12 @@ public class Publisher implements Runnable, IClient {
             e.printStackTrace();
         }
 
-        try {
-            client.disconnect();
-        } catch (MqttException e) {
-            e.printStackTrace();
+        if (client.isConnected()) {
+            try {
+                client.disconnect();
+            } catch (MqttException e) {
+                e.printStackTrace();
+            }
         }
     }
 

@@ -68,10 +68,12 @@ public class Subscriber implements MqttCallback, IClient {
 
     @Override
     public void disconnect() {
-        try {
-            client.disconnect();
-        } catch (MqttException e) {
-            e.printStackTrace();
+        if (client.isConnected()) {
+            try {
+                client.disconnect();
+            } catch (MqttException e) {
+                e.printStackTrace();
+            }
         }
     }
 
