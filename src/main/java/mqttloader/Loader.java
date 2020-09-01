@@ -195,6 +195,7 @@ public class Loader {
         if(ntpServer != null) {
             logger.info("Getting time information from NTP server.");
             NTPUDPClient client = new NTPUDPClient();
+            client.setDefaultTimeout(5000);
             InetAddress address = null;
             TimeInfo ti = null;
             try {
@@ -208,9 +209,12 @@ public class Loader {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            ti.computeDetails();
-            offset = ti.getOffset();
-            logger.info("Offset is "+offset+" milliseconds.");
+
+            if(ti != null) {
+                ti.computeDetails();
+                offset = ti.getOffset();
+                logger.info("Offset is "+offset+" milliseconds.");
+            }
         }
 
         // delay: Give ScheduledExecutorService time to setup scheduling.
