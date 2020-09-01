@@ -27,7 +27,7 @@ public class LogFormatter extends Formatter {
         return String.format(
                 "[%s] %s %s#%s %s%n",
                 record.getLevel().getName(),
-                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(record.getMillis()),
+                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z").format(record.getMillis()),
                 record.getSourceClassName(),
                 record.getSourceMethodName(),
                 record.getMessage()

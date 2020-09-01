@@ -22,7 +22,9 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Timer;
 import java.util.TreeMap;
@@ -52,10 +54,12 @@ public class Loader {
     private ArrayList<IClient> publishers = new ArrayList<>();
     private ArrayList<IClient> subscribers = new ArrayList<>();
     public static volatile long startTime;
+    private long endTime;
     public static volatile long offset = 0;
     public static volatile long lastRecvTime;
     public static CountDownLatch countDownLatch;
     public static Logger logger = Logger.getLogger(Loader.class.getName());
+    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z");
 
     public Loader(String[] args) {
         setOptions(args);
@@ -91,16 +95,26 @@ public class Loader {
         }
 
         int execTime = Integer.valueOf(cmd.getOptionValue(Opt.EXEC_TIME.getName(), Opt.EXEC_TIME.getDefaultValue()));
+        long holdTime = startTime - Util.getTime();
+        if(holdTime > 0) execTime += (int)holdTime;
         try {
             countDownLatch.await(execTime, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
+        if(countDownLatch.getCount()>0) {
+            logger.info("Measurement timed out.");
+        } else {
+            logger.info("Measurement completed.");
+        }
+
         timer.cancel();
 
         logger.info("Terminating clients.");
         disconnectClients();
+
+        endTime = Util.getTime();
 
         logger.info("Printing results.");
         dataCleansing();
@@ -164,13 +178,22 @@ public class Loader {
         int pubInterval = Integer.valueOf(cmd.getOptionValue(Opt.INTERVAL.getName(), Opt.INTERVAL.getDefaultValue()));
 
         for(int i=0;i<numPub;i++){
+            if(i == 0) {
+                logger.info("Publishers start to connect.");
+            }
+
             if(version==5){
                 publishers.add(new Publisher(i, broker, pubQos, retain, topic, payloadSize, numMessage, pubInterval));
             }else{
                 publishers.add(new PublisherV3(i, broker, pubQos, retain, topic, payloadSize, numMessage, pubInterval));
             }
         }
+
         for(int i=0;i<numSub;i++){
+            if(i == 0) {
+                logger.info("Subscribers start to connect.");
+            }
+
             if(version==5){
                 subscribers.add(new Subscriber(i, broker, subQos, shSub, topic));
             }else{
@@ -179,11 +202,15 @@ public class Loader {
         }
     }
 
+    /**
+     * Start measurement by running publishers.
+     */
     private void startMeasurement() {
         String ntpServer = cmd.getOptionValue(Opt.NTP.getName(), Opt.NTP.getDefaultValue());
         if(ntpServer != null) {
             logger.info("Getting time information from NTP server.");
             NTPUDPClient client = new NTPUDPClient();
+            client.setDefaultTimeout(5000);
             InetAddress address = null;
             TimeInfo ti = null;
             try {
@@ -197,9 +224,14 @@ public class Loader {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            ti.computeDetails();
-            offset = ti.getOffset();
-            logger.info("Offset is "+offset+" milliseconds.");
+
+            if(ti != null) {
+                ti.computeDetails();
+                offset = ti.getOffset();
+                logger.info("Offset is "+offset+" milliseconds.");
+            } else {
+                logger.warning("Failed to get time information from NTP server.");
+            }
         }
 
         // delay: Give ScheduledExecutorService time to setup scheduling.
@@ -212,11 +244,20 @@ public class Loader {
     }
 
     private void disconnectClients() {
-        for(IClient pub: publishers){
-            pub.disconnect();
+        for(int i=0;i<publishers.size();i++){
+            if(i == 0) {
+                logger.info("Publishers start to disconnect.");
+            }
+
+            publishers.get(i).disconnect();
         }
-        for(IClient sub: subscribers){
-            sub.disconnect();
+
+        for(int i=0;i<subscribers.size();i++){
+            if(i == 0) {
+                logger.info("Subscribers start to disconnect.");
+            }
+
+            subscribers.get(i).disconnect();
         }
     }
 
@@ -366,6 +407,11 @@ public class Loader {
     private void thToFile(){
         StringBuilder sb = new StringBuilder();
 
+        String sTime = sdf.format(new Date(startTime));
+        String eTime = sdf.format(new Date(endTime));
+        sb.append("Measurement start time: "+sTime+"\n");
+        sb.append("Measurement end time: "+eTime+"\n");
+
         sb.append("SLOT");
         for(int i=0;i<publishers.size();i++){
             sb.append(", "+publishers.get(i).getClientId());
@@ -424,6 +470,11 @@ public class Loader {
 
     private void ltToFile(){
         StringBuilder sb = new StringBuilder();
+
+        String sTime = sdf.format(new Date(startTime));
+        String eTime = sdf.format(new Date(endTime));
+        sb.append("Measurement start time: "+sTime+"\n");
+        sb.append("Measurement end time: "+eTime+"\n");
 
         for(int i=0;i<subscribers.size();i++){
             if(i>0) sb.append(", ");

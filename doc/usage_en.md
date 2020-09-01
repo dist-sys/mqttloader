@@ -47,7 +47,10 @@ For example, the following command uses a public MQTT broker provided by HiveMQ.
 `$ ./mqttloader -b tcp://broker.hivemq.com:1883 -p 1 -s 1 -m 10`
 
 ### Run on multiple machines
-You can run MQTTLoader on multiple machines, e.g., run publishers and subscribers separately on different machines.  
+You can run MQTTLoader on multiple machines.  
+Running both publishers and subscribers on a single machine may cause mutual influence, e.g., the subscribers' receiving load lowers the publishers' throughput.  
+By running publishers and subscribers separately on different machines, you can avoid such mutual influence.  
+
 For example, on a host A, you can run MQTTLoader as follows:
 
 `$ ./mqttloader -b tcp://<IP>:<PORT> -p 0 -s 1 -st 20 -n <NTP-SERVER>`
@@ -98,6 +101,9 @@ MQTTLoader starts to terminate when all of the following conditions are met.
 MQTTLoader also starts to terminate when the time specified by the parameter `-et` elapses, even if there are in-flight messages.  
 Thus, `-et` should be long sufficiently.
 
+If you want to do measurement with fixed time period, you can set the measurement time by the parameter `-et`.  
+Note that you need to set sufficiently large value to the parameter `-m`.
+
 By setting the parameter `-n`, MQTTLoader obtains the offset time from the specified NTP server and reflects it to calculate throughput and latency.  
 It might be useful for running multiple MQTTLoader on different machines.  
 
@@ -121,6 +127,8 @@ Maximum latency[ms]: 81
 Average latency[ms]: 42.23691
 ```
 For each publisher, MQTTLoader counts the number of messages sent for each second.  
+If QoS level is set to 1 or 2, counting is done when receiving PUBACK or PUBCOMP respectively.
+
 After completion, MQTTLoader collects the counted numbers from all publishers and calculates the maximum throughput, the average throughput, and the number of published messages.  
 `Throughput[msg/s]` is the list of throughputs, which are the sum of each second for all publishers.  
 Note that these calculation exclude the beginning and trailing seconds that have 0 messages.  
@@ -159,6 +167,8 @@ Thus, when running multiple MQTTLoader on different machines (e.g., publishers o
 By specifying the file name with `-tf` parameter, you can obtain throughput data like the following.
 
 ```
+Measurement start time: 2020-09-01 18:33:38.122 JST
+Measurement end time: 2020-09-01 18:33:54.104 JST
 SLOT, mqttloaderclient-pub000000, mqttloaderclient-sub000000
 0, 11955, 11218
 1, 16427, 16414
@@ -173,6 +183,8 @@ The data that used to calculate the summary data in the standard output is writt
 By specifying the file name with `-lf` parameter, you can obtain latency data like the following.
 
 ```
+Measurement start time: 2020-09-01 18:33:38.122 JST
+Measurement end time: 2020-09-01 18:33:54.104 JST
 mqttloaderclient-sub000000, mqttloaderclient-sub000001
 7, 7
 4, 4

@@ -48,7 +48,10 @@ MQTTLoaderの動作を確認するだけなら、パブリックブローカを�
 `$ ./mqttloader -b tcp://broker.hivemq.com:1883 -p 1 -s 1 -m 10`
 
 ### 複数台での実行
-publisherとsubscriberを別マシンで動かす、等、複数台のマシン上でMQTTLoaderを動かすこともできます。  
+複数台のマシン上でMQTTLoaderを動かすこともできます。  
+1台のマシン上でpublisherとsubscriberを動かした場合、subscriberの受信負荷によってpublisherの送信スループットが低下する等の可能性があります。  
+publisherとsubscriberを別マシンで動かすことで、負荷が相互に影響することを避けることができます。
+
 例えば、ホストA上で以下のように実行します。
 
 `$ ./mqttloader -b tcp://<IP>:<PORT> -p 0 -s 1 -st 20 -n <NTP-SERVER>`
@@ -99,6 +102,8 @@ MQTTLoaderは、以下の条件をすべて満たすと、クライアントを�
 また、MQTTLoaderは、パラメータ`-et`によって指定される時間が経過すると、メッセージ送受信中であっても、終了します。  
 送受信を中断したくない場合は、`-et`は長めに設定しておくと良いでしょう。
 
+一定時間の測定を行いたい場合には、`-et`を用いて測定時間を設定し、`-m`で十分に大きな値を設定します。
+
 パラメータ`-n`を設定すると、MQTTLoaderは指定されたNTPサーバから時刻のオフセット情報（NTPサーバ時刻からのずれ）を取得し、スループットやレイテンシの計算にそれを反映します。  
 複数のMQTTLoaderを異なるマシン上で実行する場合に、利用を検討してください。
 
@@ -123,6 +128,8 @@ Average latency[ms]: 42.23691
 ```
 
 MQTTLoaderは、各publisherごとに、毎秒の送信メッセージ数をカウントします。  
+QoSレベルが1または2の場合は、それぞれ、PUBACKおよびPUBCOMPを受信したタイミングでカウントされます。
+
 全てのメッセージ送信が完了したら、MQTTLoaderは全publisherからカウントしたメッセージ数の情報を集めて集計し、最大スループット、平均スループット、送信メッセージ数を計算します。  
 `Throughput[msg/s]`の項は、スループット値の列挙です。列挙されているそれぞれの値は、各秒における全publisherの送信メッセージ数を足し合わせたものです。  
 なお、測定開始時および終了時に送信メッセージ数が0の期間がある場合は、スループットの計算からは除外されます。  
@@ -162,6 +169,8 @@ subscriberに関しても、上記と同様にして、受信メッセージの�
 パラメータ`-tf`でファイル名を指定することで、以下のようなスループットの詳細データをファイルに書き出すことができます。
 
 ```
+Measurement start time: 2020-09-01 18:33:38.122 JST
+Measurement end time: 2020-09-01 18:33:44.104 JST
 SLOT, mqttloaderclient-pub000000, mqttloaderclient-sub000000
 0, 11955, 11218
 1, 16427, 16414
@@ -176,6 +185,8 @@ SLOT, mqttloaderclient-pub000000, mqttloaderclient-sub000000
 パラメータ`-lf`でファイル名を指定することで、以下のようなレイテンシの詳細データをファイルに書き出すことができます。
 
 ```
+Measurement start time: 2020-09-01 18:33:38.122 JST
+Measurement end time: 2020-09-01 18:33:44.104 JST
 mqttloaderclient-sub000000, mqttloaderclient-sub000001
 7, 7
 4, 4
