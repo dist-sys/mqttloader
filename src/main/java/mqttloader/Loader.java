@@ -91,6 +91,8 @@ public class Loader {
         }
 
         int execTime = Integer.valueOf(cmd.getOptionValue(Opt.EXEC_TIME.getName(), Opt.EXEC_TIME.getDefaultValue()));
+        long holdTime = startTime - Util.getTime();
+        if(holdTime > 0) execTime += (int)holdTime;
         try {
             countDownLatch.await(execTime, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
@@ -179,6 +181,9 @@ public class Loader {
         }
     }
 
+    /**
+     * Start measurement by running publishers.
+     */
     private void startMeasurement() {
         String ntpServer = cmd.getOptionValue(Opt.NTP.getName(), Opt.NTP.getDefaultValue());
         if(ntpServer != null) {
