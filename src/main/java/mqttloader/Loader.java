@@ -22,7 +22,9 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Timer;
 import java.util.TreeMap;
@@ -52,10 +54,12 @@ public class Loader {
     private ArrayList<IClient> publishers = new ArrayList<>();
     private ArrayList<IClient> subscribers = new ArrayList<>();
     public static volatile long startTime;
+    private long endTime;
     public static volatile long offset = 0;
     public static volatile long lastRecvTime;
     public static CountDownLatch countDownLatch;
     public static Logger logger = Logger.getLogger(Loader.class.getName());
+    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z");
 
     public Loader(String[] args) {
         setOptions(args);
@@ -103,6 +107,8 @@ public class Loader {
 
         logger.info("Terminating clients.");
         disconnectClients();
+
+        endTime = Util.getTime();
 
         logger.info("Printing results.");
         dataCleansing();
@@ -371,6 +377,11 @@ public class Loader {
     private void thToFile(){
         StringBuilder sb = new StringBuilder();
 
+        String sTime = sdf.format(new Date(startTime));
+        String eTime = sdf.format(new Date(endTime));
+        sb.append("Measurement start time: "+sTime+"\n");
+        sb.append("Measurement end time: "+eTime+"\n");
+
         sb.append("SLOT");
         for(int i=0;i<publishers.size();i++){
             sb.append(", "+publishers.get(i).getClientId());
@@ -429,6 +440,11 @@ public class Loader {
 
     private void ltToFile(){
         StringBuilder sb = new StringBuilder();
+
+        String sTime = sdf.format(new Date(startTime));
+        String eTime = sdf.format(new Date(endTime));
+        sb.append("Measurement start time: "+sTime+"\n");
+        sb.append("Measurement end time: "+eTime+"\n");
 
         for(int i=0;i<subscribers.size();i++){
             if(i>0) sb.append(", ");
