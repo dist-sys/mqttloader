@@ -119,8 +119,14 @@ public class Subscriber implements MqttCallback, IClient {
         }
 
         long pubTime = ByteBuffer.wrap(message.getPayload()).getLong();
+        int latency = (int)(currentTime - pubTime);
+        if (latency < 0) {
+            // If running MQTTLoader on multiple machines, a slight time error may cause a negative value of latency.
+            latency = 0;
+            Loader.logger.fine("Negative value of latency is converted to zero.");
+        }
         synchronized (latencies) {
-            latencies.add(new Latency(slot, (int)(currentTime-pubTime)));
+            latencies.add(new Latency(slot, latency));
         }
 
         Loader.lastRecvTime = currentTime;
