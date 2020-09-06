@@ -63,11 +63,19 @@ public class Util {
 
     }
 
-    public static byte[] genPayloads(int size) {
-        return ByteBuffer.allocate(size).putLong(getTime()).array();
+    public static byte[] genPayloads(int size, long currentTime) {
+        return ByteBuffer.allocate(size).putLong(currentTime).array();
     }
 
-    public static long getTime() {
-        return System.currentTimeMillis() + Loader.offset;
+    public static long getCurrentTimeMillis() {
+        return (getElapsedNanoTime()/Constants.MILLISECOND_IN_NANO) + Loader.startTime;
+    }
+
+    /**
+     *
+     * @return Elapsed time from startTime in nano seconds.
+     */
+    public static long getElapsedNanoTime() {
+        return System.nanoTime() - Loader.startNanoTime;
     }
 }

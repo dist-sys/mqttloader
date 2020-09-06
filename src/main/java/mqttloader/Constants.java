@@ -19,6 +19,9 @@ package mqttloader;
 public class Constants {
     public static final String SUB_CLIENT_ID_PREFIX = "mqttloaderclient-sub";
     public static final String PUB_CLIENT_ID_PREFIX = "mqttloaderclient-pub";
+    public static final int MILLISECOND_IN_NANO = 1000000;
+    public static final int SECOND_IN_NANO = 1000000;
+    public static final int SECOND_IN_MILLI = 1000;
 
     public enum Opt {
         BROKER("b", "broker", true, "Broker URL. E.g., tcp://127.0.0.1:1883", null, true),

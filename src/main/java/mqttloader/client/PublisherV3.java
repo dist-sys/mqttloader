@@ -24,6 +24,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import mqttloader.Constants;
 import mqttloader.Loader;
 import mqttloader.Util;
 import mqttloader.record.Latency;
@@ -124,15 +125,16 @@ public class PublisherV3 implements Runnable, IClient {
     }
 
     public void publish() {
-        message.setPayload(Util.genPayloads(payloadSize));
+        long currentTime = Util.getCurrentTimeMillis();
+        message.setPayload(Util.genPayloads(payloadSize, currentTime));
         try {
             client.publish(topic, message);
-        } catch (MqttException e) {
+        } catch (MqttException me) {
             Loader.logger.warning("On sending publish, MqttException occurred: "+clientId);
-            e.printStackTrace();
+            me.printStackTrace();
         }
 
-        int slot = (int)((Util.getTime()-Loader.startTime)/1000);
+        int slot = (int)((currentTime-Loader.startTime)/Constants.SECOND_IN_MILLI);
         if(throughputs.size()>0){
             Throughput lastTh = throughputs.get(throughputs.size()-1);
             if(lastTh.getSlot() == slot) {

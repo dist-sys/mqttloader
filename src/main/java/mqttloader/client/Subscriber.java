@@ -21,6 +21,7 @@ import static mqttloader.Constants.SUB_CLIENT_ID_PREFIX;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
+import mqttloader.Constants;
 import mqttloader.Loader;
 import mqttloader.Util;
 import mqttloader.record.Latency;
@@ -102,8 +103,8 @@ public class Subscriber implements MqttCallback, IClient {
 
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
-        long time = Util.getTime();
-        int slot = (int)((time-Loader.startTime)/1000);
+        long currentTime = Util.getCurrentTimeMillis();
+        int slot = (int)((currentTime - Loader.startTime)/Constants.SECOND_IN_MILLI);
         synchronized (throughputs) {
             if(throughputs.size()>0){
                 Throughput lastTh = throughputs.get(throughputs.size()-1);
@@ -119,10 +120,10 @@ public class Subscriber implements MqttCallback, IClient {
 
         long pubTime = ByteBuffer.wrap(message.getPayload()).getLong();
         synchronized (latencies) {
-            latencies.add(new Latency(slot, (int)(time-pubTime)));
+            latencies.add(new Latency(slot, (int)(currentTime-pubTime)));
         }
 
-        Loader.lastRecvTime = time;
+        Loader.lastRecvTime = currentTime;
 
         Loader.logger.fine("Received a message (" + topic + "): "+clientId);
     }

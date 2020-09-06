@@ -54,8 +54,8 @@ public class Loader {
     private ArrayList<IClient> publishers = new ArrayList<>();
     private ArrayList<IClient> subscribers = new ArrayList<>();
     public static volatile long startTime;
+    public static volatile long startNanoTime;
     private long endTime;
-    public static volatile long offset = 0;
     public static volatile long lastRecvTime;
     public static CountDownLatch countDownLatch;
     public static Logger logger = Logger.getLogger(Loader.class.getName());
@@ -95,8 +95,8 @@ public class Loader {
         }
 
         int execTime = Integer.valueOf(cmd.getOptionValue(Opt.EXEC_TIME.getName(), Opt.EXEC_TIME.getDefaultValue()));
-        long holdTime = startTime - Util.getTime();
-        if(holdTime > 0) execTime += (int)holdTime;
+        long holdNanoTime = Util.getElapsedNanoTime();
+        if(holdNanoTime > 0) execTime += (int)(holdNanoTime/Constants.MILLISECOND_IN_NANO);
         try {
             countDownLatch.await(execTime, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
@@ -114,7 +114,7 @@ public class Loader {
         logger.info("Terminating clients.");
         disconnectClients();
 
-        endTime = Util.getTime();
+        endTime = Util.getCurrentTimeMillis();
 
         logger.info("Printing results.");
         dataCleansing();
@@ -207,6 +207,7 @@ public class Loader {
      */
     private void startMeasurement() {
         String ntpServer = cmd.getOptionValue(Opt.NTP.getName(), Opt.NTP.getDefaultValue());
+        long offset = 0;
         if(ntpServer != null) {
             logger.info("Getting time information from NTP server.");
             NTPUDPClient client = new NTPUDPClient();
@@ -236,8 +237,10 @@ public class Loader {
 
         // delay: Give ScheduledExecutorService time to setup scheduling.
         long delay = publishers.size();
-        startTime = Util.getTime() + delay;
+        startTime = System.currentTimeMillis() + offset + delay;
+        startNanoTime = System.nanoTime() + delay * Constants.MILLISECOND_IN_NANO;
         lastRecvTime = startTime;
+
         for(IClient pub: publishers){
             pub.start(delay);
         }
