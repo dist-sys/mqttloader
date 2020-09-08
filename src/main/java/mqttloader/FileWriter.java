@@ -6,31 +6,14 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.util.concurrent.ArrayBlockingQueue;
 
 public class FileWriter implements Runnable {
-    private ArrayBlockingQueue<String> queue;
-
     private File file;
     private FileOutputStream fos = null;
     private OutputStreamWriter osw = null;
     private BufferedWriter bw = null;
 
-    private boolean terminated = false;
-
-    public FileWriter(ArrayBlockingQueue<String> queue, String filename) {
-        this.queue = queue;
-        file = new File(filename);
-
-        if(file.exists()) {
-            file.delete();
-        }
-        try {
-            file.createNewFile();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
+    public FileWriter(File file) {
         try {
             fos = new FileOutputStream(file, true);
         } catch (FileNotFoundException e) {
@@ -44,12 +27,12 @@ public class FileWriter implements Runnable {
     public void run() {
         String record = null;
         while (true) {
-            if (terminated) {
-                break;
-            }
             try {
-                record = queue.take();
+                record = Loader.queue.take();
                 if(record != null) {
+                    if(record.equals(Constants.STOP_SIGNAL)) {
+                        break;
+                    }
                     bw.write(record);
                     bw.newLine();
                 }

@@ -19,13 +19,9 @@ package mqttloader.client;
 import static mqttloader.Constants.SUB_CLIENT_ID_PREFIX;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 
-import mqttloader.Constants;
 import mqttloader.Loader;
 import mqttloader.Util;
-import mqttloader.record.Latency;
-import mqttloader.record.Throughput;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -38,11 +34,8 @@ public class SubscriberV3 implements MqttCallback, IClient {
     private MqttClient client;
     private final String clientId;
 
-    private ArrayList<Throughput> throughputs = new ArrayList<>();
-    private ArrayList<Latency> latencies = new ArrayList<>();
-
     public SubscriberV3(int clientNumber, String broker, int qos, String topic) {
-        clientId = SUB_CLIENT_ID_PREFIX + String.format("%06d", clientNumber);
+        clientId = SUB_CLIENT_ID_PREFIX + String.format("%05d", clientNumber);
         MqttConnectOptions options = new MqttConnectOptions();
         options.setMqttVersion(4);
         try {
@@ -80,35 +73,11 @@ public class SubscriberV3 implements MqttCallback, IClient {
     }
 
     @Override
-    public ArrayList<Throughput> getThroughputs() {
-        return throughputs;
-    }
-
-    @Override
-    public ArrayList<Latency> getLatencies() {
-        return latencies;
-    }
-
-    @Override
     public void connectionLost(Throwable cause) {}
 
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
         long currentTime = Util.getCurrentTimeMillis();
-        int slot = (int)((currentTime - Loader.startTime)/ Constants.SECOND_IN_MILLI);
-        synchronized (throughputs) {
-            if(throughputs.size()>0){
-                Throughput lastTh = throughputs.get(throughputs.size()-1);
-                if(lastTh.getSlot() == slot) {
-                    lastTh.setCount(lastTh.getCount()+1);
-                }else{
-                    throughputs.add(new Throughput(slot, 1));
-                }
-            }else{
-                throughputs.add(new Throughput(slot, 1));
-            }
-        }
-
         long pubTime = ByteBuffer.wrap(message.getPayload()).getLong();
         int latency = (int)(currentTime - pubTime);
         if (latency < 0) {
@@ -116,9 +85,14 @@ public class SubscriberV3 implements MqttCallback, IClient {
             latency = 0;
             Loader.logger.fine("Negative value of latency is converted to zero.");
         }
-        synchronized (latencies) {
-            latencies.add(new Latency(slot, latency));
-        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(currentTime);
+        sb.append(",");
+        sb.append(clientId);
+        sb.append(",R,");
+        sb.append(latency);
+        Loader.queue.offer(new String(sb));
 
         Loader.lastRecvTime = currentTime;
 

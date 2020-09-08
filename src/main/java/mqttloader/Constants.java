@@ -17,8 +17,10 @@
 package mqttloader;
 
 public class Constants {
-    public static final String SUB_CLIENT_ID_PREFIX = "mqttloaderclient-sub";
-    public static final String PUB_CLIENT_ID_PREFIX = "mqttloaderclient-pub";
+    public static final String FILE_NAME_PREFIX = "mqttloader_";
+    public static final String SUB_CLIENT_ID_PREFIX = "ml-s-";
+    public static final String PUB_CLIENT_ID_PREFIX = "ml-p-";
+    public static final String STOP_SIGNAL = "TERMINATED";
     public static final int MILLISECOND_IN_NANO = 1000000;
     public static final int SECOND_IN_NANO = 1000000;
     public static final int SECOND_IN_MILLI = 1000;
@@ -42,8 +44,6 @@ public class Constants {
         EXEC_TIME("et", "exectime", true, "Execution time in seconds.", "60"),
         LOG_LEVEL("l", "log", true, "Log level (SEVERE/WARNING/INFO/ALL).", "WARNING"),
         NTP("n", "ntp", true, "NTP server. E.g., ntp.nict.jp", null),
-        TH_FILE("tf", "thfile", true, "File name for throughput data.", null),
-        LT_FILE("lf", "ltfile", true, "File name for latency data.", null),
         HELP("h", "help", false, "Display help.", null);
 
         private String name;

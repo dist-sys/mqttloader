@@ -18,17 +18,13 @@ package mqttloader.client;
 
 import static mqttloader.Constants.PUB_CLIENT_ID_PREFIX;
 
-import java.util.ArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import mqttloader.Constants;
 import mqttloader.Loader;
 import mqttloader.Util;
-import mqttloader.record.Latency;
-import mqttloader.record.Throughput;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -43,9 +39,6 @@ public class PublisherV3 implements Runnable, IClient {
     private final int pubInterval;
     private MqttMessage message = new MqttMessage();
 
-    // If change publisher to be multi-threaded, throughputs (and others) should be thread-safe.
-    private ArrayList<Throughput> throughputs = new ArrayList<>();
-
     private ScheduledExecutorService service;
     private ScheduledFuture future;
 
@@ -59,7 +52,7 @@ public class PublisherV3 implements Runnable, IClient {
         this.numMessage = numMessage;
         this.pubInterval = pubInterval;
 
-        clientId = PUB_CLIENT_ID_PREFIX + String.format("%06d", clientNumber);
+        clientId = PUB_CLIENT_ID_PREFIX + String.format("%05d", clientNumber);
         MqttConnectOptions options = new MqttConnectOptions();
         options.setMqttVersion(4);
         try {
@@ -134,17 +127,12 @@ public class PublisherV3 implements Runnable, IClient {
             me.printStackTrace();
         }
 
-        int slot = (int)((currentTime-Loader.startTime)/Constants.SECOND_IN_MILLI);
-        if(throughputs.size()>0){
-            Throughput lastTh = throughputs.get(throughputs.size()-1);
-            if(lastTh.getSlot() == slot) {
-                lastTh.setCount(lastTh.getCount()+1);
-            }else{
-                throughputs.add(new Throughput(slot, 1));
-            }
-        }else{
-            throughputs.add(new Throughput(slot, 1));
-        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(currentTime);
+        sb.append(",");
+        sb.append(clientId);
+        sb.append(",S,");
+        Loader.queue.offer(new String(sb));
 
         Loader.logger.fine("Published a message (" + topic + "): "+clientId);
     }
@@ -176,15 +164,5 @@ public class PublisherV3 implements Runnable, IClient {
     @Override
     public String getClientId() {
         return clientId;
-    }
-
-    @Override
-    public ArrayList<Throughput> getThroughputs() {
-        return throughputs;
-    }
-
-    @Override
-    public ArrayList<Latency> getLatencies(){
-        return null;
     }
 }

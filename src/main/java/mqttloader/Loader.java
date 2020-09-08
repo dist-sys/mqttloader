@@ -16,18 +16,28 @@
 
 package mqttloader;
 
+import static java.lang.System.exit;
 import static mqttloader.Constants.Opt;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
 import java.net.SocketException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.StringTokenizer;
 import java.util.Timer;
 import java.util.TreeMap;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -38,8 +48,6 @@ import mqttloader.client.Publisher;
 import mqttloader.client.PublisherV3;
 import mqttloader.client.Subscriber;
 import mqttloader.client.SubscriberV3;
-import mqttloader.record.Latency;
-import mqttloader.record.Throughput;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -57,12 +65,18 @@ public class Loader {
     public static volatile long startNanoTime;
     private long endTime;
     public static volatile long lastRecvTime;
+    public static ArrayBlockingQueue<String> queue = new ArrayBlockingQueue<>(1000000);
+    private File file;
     public static CountDownLatch countDownLatch;
     public static Logger logger = Logger.getLogger(Loader.class.getName());
     private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z");
 
     public Loader(String[] args) {
         setOptions(args);
+
+        String logLevel = cmd.getOptionValue(Opt.LOG_LEVEL.getName(), Opt.LOG_LEVEL.getDefaultValue());
+        logger.setLevel(Level.parse(logLevel));
+        logger.info("Starting mqttloader tool.");
 
         int numPub = Integer.valueOf(cmd.getOptionValue(Opt.NUM_PUB.getName(), Opt.NUM_PUB.getDefaultValue()));
         int numSub = Integer.valueOf(cmd.getOptionValue(Opt.NUM_SUB.getName(), Opt.NUM_SUB.getDefaultValue()));
@@ -72,18 +86,14 @@ public class Loader {
             countDownLatch = new CountDownLatch(numPub);
         }
 
-        String logLevel = cmd.getOptionValue(Opt.LOG_LEVEL.getName(), Opt.LOG_LEVEL.getDefaultValue());
-        logger.setLevel(Level.parse(logLevel));
-
-        logger.info("Starting mqttloader tool.");
         logger.info("Preparing clients.");
         prepareClients();
 
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        file = getFile();
+        logger.info("Data file is placed at: "+file.getAbsolutePath());
+        FileWriter writer = new FileWriter(file);
+        Thread fileThread = new Thread(writer);
+        fileThread.start();
 
         logger.info("Starting measurement.");
         startMeasurement();
@@ -116,18 +126,15 @@ public class Loader {
 
         endTime = Util.getCurrentTimeMillis();
 
+        queue.offer(Constants.STOP_SIGNAL);
+        try {
+            fileThread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
         logger.info("Printing results.");
-        dataCleansing();
-
-        printThroughput(true);
-        System.out.println();
-        printThroughput(false);
-        printLatency();
-
-        String thFile = cmd.getOptionValue(Opt.TH_FILE.getName(), Opt.TH_FILE.getDefaultValue());
-        String ltFile = cmd.getOptionValue(Opt.LT_FILE.getName(), Opt.LT_FILE.getDefaultValue());
-        if(thFile!=null) thToFile();
-        if(ltFile!=null) ltToFile();
+        calcResult();
     }
 
     private void setOptions(String[] args) {
@@ -143,7 +150,7 @@ public class Loader {
         for(String arg: args){
             if(arg.equals("-"+Opt.HELP.getName()) || arg.equals("--"+options.getOption(Opt.HELP.getName()).getLongOpt())){
                 printHelp(options);
-                System.exit(0);
+                exit(0);
             }
         }
 
@@ -153,7 +160,7 @@ public class Loader {
         } catch (ParseException e) {
             logger.severe("Failed to parse options.");
             printHelp(options);
-            System.exit(1);
+            exit(1);
         }
     }
 
@@ -161,6 +168,34 @@ public class Loader {
         HelpFormatter help = new HelpFormatter();
         help.setOptionComparator(null);
         help.printHelp(Loader.class.getName(), options, true);
+    }
+
+    private File getFile() {
+        File file;
+        try {
+            URL url = Loader.class.getProtectionDomain().getCodeSource().getLocation();
+            file = new File(new URL(url.toString()).toURI());
+            if(file.getParentFile().getName().equals("lib")){
+                file = file.getParentFile().getParentFile();
+            } else {
+                file = new File("").getAbsoluteFile();
+            }
+        } catch (SecurityException | NullPointerException | URISyntaxException | MalformedURLException e) {
+            file = new File("").getAbsoluteFile();
+        }
+        String date = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date(System.currentTimeMillis()+getOffsetFromNtpServer()));
+        file = new File(file, Constants.FILE_NAME_PREFIX+date+".csv");
+
+        if(file.exists()) {
+            file.delete();
+        }
+        try {
+            file.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return file;
     }
 
     private void prepareClients() {
@@ -206,6 +241,18 @@ public class Loader {
      * Start measurement by running publishers.
      */
     private void startMeasurement() {
+        // delay: Give ScheduledExecutorService time to setup scheduling.
+        long delay = publishers.size();
+        startTime = System.currentTimeMillis() + getOffsetFromNtpServer() + delay;
+        startNanoTime = System.nanoTime() + delay * Constants.MILLISECOND_IN_NANO;
+        lastRecvTime = startTime;
+
+        for(IClient pub: publishers){
+            pub.start(delay);
+        }
+    }
+
+    private long getOffsetFromNtpServer() {
         String ntpServer = cmd.getOptionValue(Opt.NTP.getName(), Opt.NTP.getDefaultValue());
         long offset = 0;
         if(ntpServer != null) {
@@ -235,15 +282,7 @@ public class Loader {
             }
         }
 
-        // delay: Give ScheduledExecutorService time to setup scheduling.
-        long delay = publishers.size();
-        startTime = System.currentTimeMillis() + offset + delay;
-        startNanoTime = System.nanoTime() + delay * Constants.MILLISECOND_IN_NANO;
-        lastRecvTime = startTime;
-
-        for(IClient pub: publishers){
-            pub.start(delay);
-        }
+        return offset;
     }
 
     private void disconnectClients() {
@@ -264,140 +303,92 @@ public class Loader {
         }
     }
 
-    private void dataCleansing() {
+    private void calcResult() {
+        TreeMap<Integer, Integer> sendThroughputs = new TreeMap<>();
+        TreeMap<Integer, Integer> recvThroughputs = new TreeMap<>();
+        TreeMap<Integer, ArrayList<Integer>> latencies = new TreeMap<>();
+
+        FileInputStream fis = null;
+        InputStreamReader isr = null;
+        BufferedReader br = null;
+        try{
+            fis = new FileInputStream(file);
+            isr = new InputStreamReader(fis);
+            br = new BufferedReader(isr);
+
+            String str;
+            while ((str = br.readLine()) != null) {
+                StringTokenizer st = new StringTokenizer(str, ",");
+                long timestamp = Long.valueOf(st.nextToken());
+                st.nextToken(); //client ID
+                boolean isSendRecord = st.nextToken().equals("S") ? true : false;
+                int latency = 0;
+                if (st.hasMoreTokens()) {
+                    latency = Integer.valueOf(st.nextToken());
+                }
+
+                int elapsedSecond = (int)((timestamp-startTime)/1000);
+                if(isSendRecord) {
+                    if(sendThroughputs.containsKey(elapsedSecond)) {
+                        sendThroughputs.put(elapsedSecond, sendThroughputs.get(elapsedSecond)+1);
+                    } else {
+                        sendThroughputs.put(elapsedSecond, 1);
+                    }
+                } else {
+                    if(recvThroughputs.containsKey(elapsedSecond)) {
+                        recvThroughputs.put(elapsedSecond, recvThroughputs.get(elapsedSecond)+1);
+                    } else {
+                        recvThroughputs.put(elapsedSecond, 1);
+                    }
+
+                    if(!latencies.containsKey(elapsedSecond)) {
+                        latencies.put(elapsedSecond, new ArrayList<Integer>());
+                    }
+                    latencies.get(elapsedSecond).add(latency);
+                }
+            }
+
+            br.close();
+            isr.close();
+            fis.close();
+        } catch(IOException e){
+            e.printStackTrace();
+        } finally {
+            try {
+                if(br != null) br.close();
+                if(isr != null) isr.close();
+                if(fis != null) fis.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
+        }
+
         int rampup = Integer.valueOf(cmd.getOptionValue(Opt.RAMP_UP.getName(), Opt.RAMP_UP.getDefaultValue()));
         int rampdown = Integer.valueOf(cmd.getOptionValue(Opt.RAMP_DOWN.getName(), Opt.RAMP_DOWN.getDefaultValue()));
-        if(rampup==0 && rampdown==0) return;
 
-        int pubFirstSlot = Integer.MAX_VALUE;
-        int pubLastSlot = 0;
-        for(IClient pub: publishers){
-            ArrayList<Throughput> list = pub.getThroughputs();
-            if(!list.isEmpty()) {
-                int first = list.get(0).getSlot();
-                int last = list.get(list.size()-1).getSlot();
-                if(first < pubFirstSlot) pubFirstSlot = first;
-                if(last > pubLastSlot) pubLastSlot = last;
-            }
-        }
+        trimTreeMap(sendThroughputs, rampup, rampdown);
+        trimTreeMap(recvThroughputs, rampup, rampdown);
+        trimTreeMap(latencies, rampup, rampdown);
 
-        for(IClient pub: publishers) {
-            Iterator<Throughput> itr = pub.getThroughputs().iterator();
-            while(itr.hasNext()){
-                Throughput th = itr.next();
-                if(th.getSlot() < rampup+pubFirstSlot) {
-                    itr.remove();
-                }else if(th.getSlot() > pubLastSlot-rampdown){
-                    itr.remove();
-                }
-            }
-        }
+        paddingTreeMap(sendThroughputs);
+        paddingTreeMap(recvThroughputs);
 
-        int subFirstSlot = Integer.MAX_VALUE;
-        int subLastSlot = 0;
-        for(IClient sub: subscribers){
-            ArrayList<Throughput> list = sub.getThroughputs();
-            if(!list.isEmpty()) {
-                int first = list.get(0).getSlot();
-                int last = list.get(list.size()-1).getSlot();
-                if(first < subFirstSlot) subFirstSlot = first;
-                if(last > subLastSlot) subLastSlot = last;
-            }
-        }
-
-        for(IClient sub: subscribers){
-            Iterator<Throughput> itrTh = sub.getThroughputs().iterator();
-            while(itrTh.hasNext()){
-                Throughput th = itrTh.next();
-                if(th.getSlot() < rampup+subFirstSlot) {
-                    itrTh.remove();
-                }else if(th.getSlot() > subLastSlot-rampdown){
-                    itrTh.remove();
-                }
-            }
-
-            Iterator<Latency> itrLt = sub.getLatencies().iterator();
-            while(itrLt.hasNext()){
-                Latency lt = itrLt.next();
-                if(lt.getSlot() < rampup+subFirstSlot) {
-                    itrLt.remove();
-                }else if(lt.getSlot() > subLastSlot-rampdown){
-                    itrLt.remove();
-                }
-            }
-        }
-    }
-
-    private void printThroughput(boolean forPub) {
-        TreeMap<Integer, Integer> thTotal = new TreeMap<>();
-        ArrayList<IClient> clients;
-        if(forPub){
-            clients = publishers;
-        }else{
-            clients = subscribers;
-        }
-
-        for(IClient client: clients){
-            ArrayList<Throughput> ths = client.getThroughputs();
-            for(Throughput th : ths) {
-                if(thTotal.containsKey(th.getSlot())){
-                    thTotal.put(th.getSlot(), thTotal.get(th.getSlot())+th.getCount());
-                }else{
-                    thTotal.put(th.getSlot(), th.getCount());
-                }
-            }
-        }
-
-        if(thTotal.size()>0){
-            for(int i=thTotal.firstKey(); i<=thTotal.lastKey(); i++){
-                if(!thTotal.containsKey(i)){
-                    thTotal.put(i, 0);
-                }
-            }
-        }
-
-        int maxTh = 0;
-        int sumMsg = 0;
-        for(int slot: thTotal.keySet()){
-            int th = thTotal.get(slot);
-            if(th > maxTh) {
-                maxTh = th;
-            }
-            sumMsg += th;
-        }
-        double aveTh = thTotal.size()>0 ? (double)sumMsg/thTotal.size() : 0;
-
-        if(forPub){
-            System.out.println("-----Publisher-----");
-        }else{
-            System.out.println("-----Subscriber-----");
-        }
-        System.out.println("Maximum throughput[msg/s]: "+maxTh);
-        System.out.println("Average throughput[msg/s]: "+aveTh);
-        if(forPub){
-            System.out.println("Number of published messages: "+sumMsg);
-        }else{
-            System.out.println("Number of received messages: "+sumMsg);
-        }
-        System.out.print("Throughput[msg/s]: ");
-        for(int slot: thTotal.keySet()){
-            System.out.print(thTotal.get(slot));
-            if(slot<thTotal.lastKey()){
-                System.out.print(", ");
-            }
-        }
+        System.out.println("-----Publisher-----");
+        printThroughput(sendThroughputs, true);
         System.out.println();
-    }
+        System.out.println("-----Subscriber-----");
+        printThroughput(recvThroughputs, false);
 
-    private void printLatency() {
         int maxLt = 0;
         long sumLt = 0;
         int count = 0;
-        for(IClient sub: subscribers){
-            for(int i=0;i<sub.getLatencies().size();i++){
-                int lt = sub.getLatencies().get(i).getLatency();
-                if(lt > maxLt) maxLt = lt;
-                sumLt += lt;
+        for(ArrayList<Integer> latencyList: latencies.values()){
+            for(int latency: latencyList){
+                if(latency > maxLt) {
+                    maxLt = latency;
+                }
+                sumLt += latency;
                 count++;
             }
         }
@@ -407,108 +398,62 @@ public class Loader {
         System.out.println("Average latency[ms]: "+aveLt);
     }
 
-    private void thToFile(){
-        StringBuilder sb = new StringBuilder();
-
-        String sTime = sdf.format(new Date(startTime));
-        String eTime = sdf.format(new Date(endTime));
-        sb.append("Measurement start time: "+sTime+"\n");
-        sb.append("Measurement end time: "+eTime+"\n");
-
-        sb.append("SLOT");
-        for(int i=0;i<publishers.size();i++){
-            sb.append(", "+publishers.get(i).getClientId());
+    private void trimTreeMap(TreeMap<Integer, ?> map, int rampup, int rampdown) {
+        if(map.size() == 0) {
+            return;
         }
-        for(int i=0;i<subscribers.size();i++){
-            sb.append(", "+subscribers.get(i).getClientId());
-        }
-        sb.append("\n");
-
-        // slot, <pub-id, count>
-        TreeMap<Integer, TreeMap<Integer, Integer>> thAggregate = new TreeMap<>();
-        for(int i=0;i<publishers.size();i++){
-            ArrayList<Throughput> pubth = publishers.get(i).getThroughputs();
-            for(Throughput th: pubth) {
-                if(!thAggregate.containsKey(th.getSlot())){
-                    TreeMap<Integer, Integer> map = new TreeMap<>();
-                    thAggregate.put(th.getSlot(), map);
-                }
-                thAggregate.get(th.getSlot()).put(i, th.getCount());
+        int firstTime = map.firstKey();
+        int lastTime = map.lastKey();
+        Iterator<Integer> itr = map.keySet().iterator();
+        while(itr.hasNext()){
+            int time = itr.next();
+            if(time < rampup+firstTime) {
+                itr.remove();
+            }else if(time > lastTime-rampdown){
+                itr.remove();
             }
         }
-        for(int i=0;i<subscribers.size();i++){
-            ArrayList<Throughput> subth = subscribers.get(i).getThroughputs();
-            for(Throughput th: subth) {
-                if(!thAggregate.containsKey(th.getSlot())){
-                    TreeMap<Integer, Integer> map = new TreeMap<>();
-                    thAggregate.put(th.getSlot(), map);
-                }
-                thAggregate.get(th.getSlot()).put(i+publishers.size(), th.getCount());
-            }
-        }
-
-        int numClients = publishers.size()+subscribers.size();
-        if(thAggregate.size()>0){
-            for(int slot=thAggregate.firstKey();slot<thAggregate.lastKey()+1;slot++){
-                StringBuilder lineSb = new StringBuilder();
-                lineSb.append(slot);
-
-                for(int i=0;i<numClients;i++) {
-                    if (thAggregate.containsKey(slot)) {
-                        if (thAggregate.get(slot).containsKey(i)) {
-                            lineSb.append(", " + thAggregate.get(slot).get(i));
-                            continue;
-                        }
-                    }
-                    lineSb.append(", " + 0);
-                }
-                lineSb.append("\n");
-                sb.append(lineSb);
-            }
-        }
-
-        String thFile = cmd.getOptionValue(Opt.TH_FILE.getName(), Opt.TH_FILE.getDefaultValue());
-        Util.output(thFile, sb.toString(), false);
     }
 
-    private void ltToFile(){
-        StringBuilder sb = new StringBuilder();
-
-        String sTime = sdf.format(new Date(startTime));
-        String eTime = sdf.format(new Date(endTime));
-        sb.append("Measurement start time: "+sTime+"\n");
-        sb.append("Measurement end time: "+eTime+"\n");
-
-        for(int i=0;i<subscribers.size();i++){
-            if(i>0) sb.append(", ");
-            sb.append(subscribers.get(i).getClientId());
+    private void paddingTreeMap(TreeMap<Integer, Integer> map) {
+        if(map.size() == 0) {
+            return;
         }
-        sb.append("\n");
-
-        int index = 0;
-        while(true) {
-            StringBuilder lineSb = new StringBuilder();
-            boolean hasNext = false;
-            for(int i=0;i<subscribers.size();i++){
-                int lt = 0;
-                if(subscribers.get(i).getLatencies().size()>index){
-                    lt = subscribers.get(i).getLatencies().get(index).getLatency();
-                    hasNext = true;
-                }
-                if(i>0) lineSb.append(", ");
-                lineSb.append(lt);
-            }
-            lineSb.append("\n");
-            if(hasNext){
-                index++;
-                sb.append(lineSb);
-            }else{
-                break;
+        for(int i=map.firstKey();i<map.lastKey()+1;i++) {
+            if(!map.containsKey(i)) {
+                map.put(i, 0);
             }
         }
+    }
 
-        String ltFile = cmd.getOptionValue(Opt.LT_FILE.getName(), Opt.LT_FILE.getDefaultValue());
-        Util.output(ltFile, sb.toString(), false);
+    private void printThroughput(TreeMap<Integer, Integer> throughputs, boolean forPublisher) {
+        int maxTh = 0;
+        int sumMsg = 0;
+        for(int elapsedSecond: throughputs.keySet()){
+            int th = throughputs.get(elapsedSecond);
+            if(th > maxTh) {
+                maxTh = th;
+            }
+            sumMsg += th;
+        }
+
+        double aveTh = throughputs.size()>0 ? (double)sumMsg/throughputs.size() : 0;
+        System.out.println("Maximum throughput[msg/s]: "+maxTh);
+        System.out.println("Average throughput[msg/s]: "+aveTh);
+        if(forPublisher){
+            System.out.println("Number of published messages: "+sumMsg);
+        }else{
+            System.out.println("Number of received messages: "+sumMsg);
+        }
+
+        System.out.print("Throughput[msg/s]: ");
+        for(int elapsedSecond: throughputs.keySet()){
+            System.out.print(throughputs.get(elapsedSecond));
+            if(elapsedSecond<throughputs.lastKey()){
+                System.out.print(", ");
+            }
+        }
+        System.out.println();
     }
 
     public static void main(String[] args){
