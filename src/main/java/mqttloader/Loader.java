@@ -62,8 +62,8 @@ public class Loader {
     private CommandLine cmd = null;
     private ArrayList<AbstractClient> publishers = new ArrayList<>();
     private ArrayList<AbstractClient> subscribers = new ArrayList<>();
-    public static volatile long startTime;
-    public static volatile long startNanoTime;
+    public static volatile long startTime = 0;
+    public static volatile long startNanoTime = 0;
     private long endTime;
     public static volatile long lastRecvTime;
     public static ArrayBlockingQueue<Record> queue = new ArrayBlockingQueue<>(1000000);
@@ -418,6 +418,7 @@ public class Loader {
         if(map.size() == 0) {
             return;
         }
+
         for(int i=map.firstKey();i<map.lastKey()+1;i++) {
             if(!map.containsKey(i)) {
                 map.put(i, 0);

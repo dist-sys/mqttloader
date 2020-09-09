@@ -24,7 +24,7 @@ public class Constants {
     public static final String PUB_CLIENT_ID_PREFIX = "ml-"+HOST_ID+"-p-";
     public static final Record STOP_SIGNAL = new Record();
     public static final int MILLISECOND_IN_NANO = 1000000;
-    public static final int SECOND_IN_NANO = 1000000;
+    public static final int SECOND_IN_NANO = 1000000000;
     public static final int SECOND_IN_MILLI = 1000;
 
     public enum Opt {
