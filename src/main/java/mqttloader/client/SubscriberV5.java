@@ -22,6 +22,7 @@ import org.eclipse.paho.mqttv5.client.MqttCallback;
 import org.eclipse.paho.mqttv5.client.MqttClient;
 import org.eclipse.paho.mqttv5.client.MqttConnectionOptions;
 import org.eclipse.paho.mqttv5.client.MqttDisconnectResponse;
+import org.eclipse.paho.mqttv5.client.persist.MemoryPersistence;
 import org.eclipse.paho.mqttv5.common.MqttException;
 import org.eclipse.paho.mqttv5.common.MqttMessage;
 import org.eclipse.paho.mqttv5.common.packet.MqttProperties;
@@ -32,8 +33,9 @@ public class SubscriberV5 extends AbstractSubscriber implements MqttCallback {
     public SubscriberV5(int clientNumber, String broker, int qos, boolean shSub, String topic) {
         super(clientNumber);
         MqttConnectionOptions options = new MqttConnectionOptions();
+        options.setCleanStart(true);
         try {
-            client = new MqttClient(broker, clientId);
+            client = new MqttClient(broker, clientId, new MemoryPersistence());
             client.setCallback(this);
             client.connect(options);
             Loader.logger.info("Subscriber " + clientId + " connected.");

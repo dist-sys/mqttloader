@@ -23,6 +23,7 @@ import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 
 public class SubscriberV3 extends AbstractSubscriber implements MqttCallback {
@@ -32,8 +33,9 @@ public class SubscriberV3 extends AbstractSubscriber implements MqttCallback {
         super(clientNumber);
         MqttConnectOptions options = new MqttConnectOptions();
         options.setMqttVersion(4);
+        options.setCleanSession(true);
         try {
-            client = new MqttClient(broker, clientId);
+            client = new MqttClient(broker, clientId, new MemoryPersistence());
             client.setCallback(this);
             client.connect(options);
             Loader.logger.info("Subscriber " + clientId + " connected.");

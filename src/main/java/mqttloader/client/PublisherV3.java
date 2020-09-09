@@ -22,6 +22,7 @@ import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
 public class PublisherV3 extends AbstractPublisher {
     private MqttClient client;
@@ -34,8 +35,9 @@ public class PublisherV3 extends AbstractPublisher {
 
         MqttConnectOptions options = new MqttConnectOptions();
         options.setMqttVersion(4);
+        options.setCleanSession(true);
         try {
-            client = new MqttClient(broker, clientId);
+            client = new MqttClient(broker, clientId, new MemoryPersistence());
             client.connect(options);
             Loader.logger.info("Publisher " + clientId + " connected.");
         } catch (MqttException e) {
