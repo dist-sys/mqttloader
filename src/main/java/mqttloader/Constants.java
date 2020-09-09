@@ -17,12 +17,19 @@
 package mqttloader;
 
 public class Constants {
-    public static final String SUB_CLIENT_ID_PREFIX = "mqttloaderclient-sub";
-    public static final String PUB_CLIENT_ID_PREFIX = "mqttloaderclient-pub";
+    public static final String VERSION = "0.7.0";
+    public static final String FILE_NAME_PREFIX = "mqttloader_";
+    private static final String HOST_ID = Util.genRandomChars(4);
+    public static final String SUB_CLIENT_ID_PREFIX = "ml-"+HOST_ID+"-s-";
+    public static final String PUB_CLIENT_ID_PREFIX = "ml-"+HOST_ID+"-p-";
+    public static final Record STOP_SIGNAL = new Record();
+    public static final int MILLISECOND_IN_NANO = 1000000;
+    public static final int SECOND_IN_NANO = 1000000000;
+    public static final int SECOND_IN_MILLI = 1000;
 
     public enum Opt {
         BROKER("b", "broker", true, "Broker URL. E.g., tcp://127.0.0.1:1883", null, true),
-        VERSION("v", "version", true, "MQTT version (\"3\" for 3.1.1 or \"5\" for 5.0).", "5"),
+        MQTT_VERSION("v", "version", true, "MQTT version (\"3\" for 3.1.1 or \"5\" for 5.0).", "5"),
         NUM_PUB("p", "npub", true, "Number of publishers.", "1"),
         NUM_SUB("s", "nsub", true, "Number of subscribers.", "1"),
         PUB_QOS("pq", "pubqos", true, "QoS level of publishers (0/1/2).", "0"),
@@ -37,10 +44,9 @@ public class Constants {
         INTERVAL("i", "interval", true, "Publish interval in milliseconds.", "0"),
         SUB_TIMEOUT("st", "subtimeout", true, "Subscribers' timeout in seconds.", "5"),
         EXEC_TIME("et", "exectime", true, "Execution time in seconds.", "60"),
-        LOG_LEVEL("l", "log", true, "Log level (SEVERE/WARNING/INFO/ALL).", "WARNING"),
+        LOG_LEVEL("l", "log", true, "Log level (SEVERE/WARNING/INFO/ALL).", "INFO"),
         NTP("n", "ntp", true, "NTP server. E.g., ntp.nict.jp", null),
-        TH_FILE("tf", "thfile", true, "File name for throughput data.", null),
-        LT_FILE("lf", "ltfile", true, "File name for latency data.", null),
+        IN_MEMORY("im", "inmemory", false, "Enable in-memory mode", null),
         HELP("h", "help", false, "Display help.", null);
 
         private String name;

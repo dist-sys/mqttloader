@@ -26,6 +26,11 @@ public class RecvTimeoutTask extends TimerTask {
     private Timer timer;
     private int subTimeout;
 
+    /**
+     *
+     * @param timer Timer instance for this task.
+     * @param subTimeout Timeout value in second.
+     */
     public RecvTimeoutTask(Timer timer, int subTimeout) {
         this.timer = timer;
         this.subTimeout = subTimeout;
@@ -33,9 +38,9 @@ public class RecvTimeoutTask extends TimerTask {
 
     @Override
     public void run() {
-        long remainingTime = subTimeout*1000 - (Util.getTime() - lastRecvTime);  // <timeout> - <elapsed time>
+        long remainingTime = subTimeout*Constants.SECOND_IN_MILLI - (Util.getCurrentTimeMillis() - lastRecvTime);  // <timeout> - <elapsed time>
         if (remainingTime <= 0) {
-            Loader.logger.info("Receiving messages on subscribers timed out.");
+            Loader.logger.info("Subscribers timed out.");
             countDownLatch.countDown();
         } else {
             timer.schedule(new RecvTimeoutTask(timer, subTimeout), remainingTime);

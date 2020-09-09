@@ -16,15 +16,16 @@
 
 package mqttloader.client;
 
-import java.util.ArrayList;
+public abstract class AbstractClient {
+    protected final String clientId;
 
-import mqttloader.record.Latency;
-import mqttloader.record.Throughput;
+    public AbstractClient(String clientId) {
+        this.clientId = clientId;
+    }
 
-public interface IClient {
-    String getClientId();
-    void start(long delay);
-    void disconnect();
-    ArrayList<Throughput> getThroughputs();
-    ArrayList<Latency> getLatencies();
+    public abstract void disconnect();
+
+    public String getClientId() {
+        return clientId;
+    }
 }

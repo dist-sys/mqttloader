@@ -16,39 +16,29 @@
 
 package mqttloader.client;
 
-import static mqttloader.Constants.SUB_CLIENT_ID_PREFIX;
-
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-
 import mqttloader.Loader;
-import mqttloader.Util;
-import mqttloader.record.Latency;
-import mqttloader.record.Throughput;
 import org.eclipse.paho.mqttv5.client.IMqttToken;
 import org.eclipse.paho.mqttv5.client.MqttCallback;
 import org.eclipse.paho.mqttv5.client.MqttClient;
 import org.eclipse.paho.mqttv5.client.MqttConnectionOptions;
 import org.eclipse.paho.mqttv5.client.MqttDisconnectResponse;
+import org.eclipse.paho.mqttv5.client.persist.MemoryPersistence;
 import org.eclipse.paho.mqttv5.common.MqttException;
 import org.eclipse.paho.mqttv5.common.MqttMessage;
 import org.eclipse.paho.mqttv5.common.packet.MqttProperties;
 
-public class Subscriber implements MqttCallback, IClient {
+public class SubscriberV5 extends AbstractSubscriber implements MqttCallback {
     private MqttClient client;
-    private final String clientId;
 
-    private ArrayList<Throughput> throughputs = new ArrayList<>();
-    private ArrayList<Latency> latencies = new ArrayList<>();
-
-    public Subscriber(int clientNumber, String broker, int qos, boolean shSub, String topic) {
-        clientId = SUB_CLIENT_ID_PREFIX + String.format("%06d", clientNumber);
+    public SubscriberV5(int clientNumber, String broker, int qos, boolean shSub, String topic) {
+        super(clientNumber);
         MqttConnectionOptions options = new MqttConnectionOptions();
+        options.setCleanStart(true);
         try {
-            client = new MqttClient(broker, clientId);
+            client = new MqttClient(broker, clientId, new MemoryPersistence());
             client.setCallback(this);
             client.connect(options);
-            Loader.logger.info("Subscriber client is connected: "+clientId);
+            Loader.logger.info("Subscriber " + clientId + " connected.");
             String t;
             if(shSub){
                 t = "$share/mqttload/"+topic;
@@ -56,15 +46,12 @@ public class Subscriber implements MqttCallback, IClient {
                 t = topic;
             }
             client.subscribe(t, qos);
-            Loader.logger.info("Subscribed (" + t + ", QoS:" + qos + "): " + clientId);
+            Loader.logger.info("Subscribed to topic \"" + t + "\" with QoS " + qos + " (" + clientId + ").");
         } catch (MqttException e) {
-            Loader.logger.warning("Subscriber client fails to connect: "+clientId);
+            Loader.logger.warning("Subscriber failed to connect (" + clientId + ").");
             e.printStackTrace();
+            System.exit(1);
         }
-    }
-
-    @Override
-    public void start(long delay){
     }
 
     @Override
@@ -72,26 +59,11 @@ public class Subscriber implements MqttCallback, IClient {
         if (client.isConnected()) {
             try {
                 client.disconnect();
-                Loader.logger.info("Subscriber client is disconnected: "+clientId);
+                Loader.logger.info("Subscriber " + clientId + " disconnected.");
             } catch (MqttException e) {
                 e.printStackTrace();
             }
         }
-    }
-
-    @Override
-    public String getClientId() {
-        return clientId;
-    }
-
-    @Override
-    public ArrayList<Throughput> getThroughputs() {
-        return throughputs;
-    }
-
-    @Override
-    public ArrayList<Latency> getLatencies() {
-        return latencies;
     }
 
     @Override
@@ -102,29 +74,7 @@ public class Subscriber implements MqttCallback, IClient {
 
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
-        long time = Util.getTime();
-        int slot = (int)((time-Loader.startTime)/1000);
-        synchronized (throughputs) {
-            if(throughputs.size()>0){
-                Throughput lastTh = throughputs.get(throughputs.size()-1);
-                if(lastTh.getSlot() == slot) {
-                    lastTh.setCount(lastTh.getCount()+1);
-                }else{
-                    throughputs.add(new Throughput(slot, 1));
-                }
-            }else{
-                throughputs.add(new Throughput(slot, 1));
-            }
-        }
-
-        long pubTime = ByteBuffer.wrap(message.getPayload()).getLong();
-        synchronized (latencies) {
-            latencies.add(new Latency(slot, (int)(time-pubTime)));
-        }
-
-        Loader.lastRecvTime = time;
-
-        Loader.logger.fine("Received a message (" + topic + "): "+clientId);
+        recordReceive(topic, message.getPayload());
     }
 
     @Override

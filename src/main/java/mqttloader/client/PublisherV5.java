@@ -18,24 +18,23 @@ package mqttloader.client;
 
 import mqttloader.Loader;
 import mqttloader.Util;
-import org.eclipse.paho.client.mqttv3.MqttClient;
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
-import org.eclipse.paho.client.mqttv3.MqttException;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
-import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
+import org.eclipse.paho.mqttv5.client.MqttClient;
+import org.eclipse.paho.mqttv5.client.MqttConnectionOptions;
+import org.eclipse.paho.mqttv5.client.persist.MemoryPersistence;
+import org.eclipse.paho.mqttv5.common.MqttException;
+import org.eclipse.paho.mqttv5.common.MqttMessage;
 
-public class PublisherV3 extends AbstractPublisher {
+public class PublisherV5 extends AbstractPublisher {
     private MqttClient client;
     private MqttMessage message = new MqttMessage();
 
-    public PublisherV3(int clientNumber, String broker, int qos, boolean retain, String topic, int payloadSize, int numMessage, int pubInterval) {
+    public PublisherV5(int clientNumber, String broker, int qos, boolean retain, String topic, int payloadSize, int numMessage, int pubInterval) {
         super(clientNumber, topic, payloadSize, numMessage, pubInterval);
         message.setQos(qos);
         message.setRetained(retain);
 
-        MqttConnectOptions options = new MqttConnectOptions();
-        options.setMqttVersion(4);
-        options.setCleanSession(true);
+        MqttConnectionOptions options = new MqttConnectionOptions();
+        options.setCleanStart(true);
         try {
             client = new MqttClient(broker, clientId, new MemoryPersistence());
             client.connect(options);
