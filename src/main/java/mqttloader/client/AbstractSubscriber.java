@@ -21,6 +21,7 @@ import static mqttloader.Constants.SUB_CLIENT_ID_PREFIX;
 import java.nio.ByteBuffer;
 
 import mqttloader.Loader;
+import mqttloader.Record;
 import mqttloader.Util;
 
 public abstract class AbstractSubscriber extends AbstractClient {
@@ -39,16 +40,8 @@ public abstract class AbstractSubscriber extends AbstractClient {
             Loader.logger.fine("Negative value of latency is converted to zero.");
         }
 
-        StringBuilder sb = new StringBuilder();
-        sb.append(currentTime);
-        sb.append(",");
-        sb.append(clientId);
-        sb.append(",R,");
-        sb.append(latency);
-        Loader.queue.offer(new String(sb));
-
+        Loader.queue.offer(new Record(currentTime, clientId, false, latency));
         Loader.lastRecvTime = currentTime;
-
         Loader.logger.fine("Received a message (" + topic + "): "+clientId);
     }
 }

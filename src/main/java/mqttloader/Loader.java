@@ -66,8 +66,9 @@ public class Loader {
     public static volatile long startNanoTime;
     private long endTime;
     public static volatile long lastRecvTime;
-    public static ArrayBlockingQueue<String> queue = new ArrayBlockingQueue<>(1000000);
+    public static ArrayBlockingQueue<Record> queue = new ArrayBlockingQueue<>(1000000);
     private File file;
+    private Recorder recorder;
     public static CountDownLatch countDownLatch;
     public static Logger logger = Logger.getLogger(Loader.class.getName());
     private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z");
@@ -90,10 +91,13 @@ public class Loader {
         logger.info("Preparing clients.");
         prepareClients();
 
-        file = getFile();
-        logger.info("Data file is placed at: "+file.getAbsolutePath());
-        FileWriter writer = new FileWriter(file);
-        Thread fileThread = new Thread(writer);
+        boolean inMemory = cmd.hasOption(Opt.IN_MEMORY.getName());
+        if(!inMemory) {
+            file = getFile();
+            logger.info("Data file is placed at: "+file.getAbsolutePath());
+        }
+        recorder = new Recorder(file, inMemory);
+        Thread fileThread = new Thread(recorder);
         fileThread.start();
 
         logger.info("Starting measurement.");
@@ -305,72 +309,58 @@ public class Loader {
     }
 
     private void calcResult() {
-        TreeMap<Integer, Integer> sendThroughputs = new TreeMap<>();
-        TreeMap<Integer, Integer> recvThroughputs = new TreeMap<>();
-        TreeMap<Integer, ArrayList<Integer>> latencies = new TreeMap<>();
+        if(!cmd.hasOption(Opt.IN_MEMORY.getName())) {
+            FileInputStream fis = null;
+            InputStreamReader isr = null;
+            BufferedReader br = null;
+            try{
+                fis = new FileInputStream(file);
+                isr = new InputStreamReader(fis);
+                br = new BufferedReader(isr);
 
-        FileInputStream fis = null;
-        InputStreamReader isr = null;
-        BufferedReader br = null;
-        try{
-            fis = new FileInputStream(file);
-            isr = new InputStreamReader(fis);
-            br = new BufferedReader(isr);
+                String str;
+                while ((str = br.readLine()) != null) {
+                    StringTokenizer st = new StringTokenizer(str, ",");
+                    long timestamp = Long.valueOf(st.nextToken());
+                    String clientId = st.nextToken(); //client ID
+                    boolean isSend = st.nextToken().equals("S") ? true : false;
+                    int latency = -1;
+                    if (st.hasMoreTokens()) {
+                        latency = Integer.valueOf(st.nextToken());
+                    }
 
-            String str;
-            while ((str = br.readLine()) != null) {
-                StringTokenizer st = new StringTokenizer(str, ",");
-                long timestamp = Long.valueOf(st.nextToken());
-                st.nextToken(); //client ID
-                boolean isSendRecord = st.nextToken().equals("S") ? true : false;
-                int latency = 0;
-                if (st.hasMoreTokens()) {
-                    latency = Integer.valueOf(st.nextToken());
+                    recorder.recordInMemory(new Record(timestamp, clientId, isSend, latency));
                 }
 
-                int elapsedSecond = (int)((timestamp-startTime)/1000);
-                if(isSendRecord) {
-                    if(sendThroughputs.containsKey(elapsedSecond)) {
-                        sendThroughputs.put(elapsedSecond, sendThroughputs.get(elapsedSecond)+1);
-                    } else {
-                        sendThroughputs.put(elapsedSecond, 1);
-                    }
-                } else {
-                    if(recvThroughputs.containsKey(elapsedSecond)) {
-                        recvThroughputs.put(elapsedSecond, recvThroughputs.get(elapsedSecond)+1);
-                    } else {
-                        recvThroughputs.put(elapsedSecond, 1);
-                    }
-
-                    if(!latencies.containsKey(elapsedSecond)) {
-                        latencies.put(elapsedSecond, new ArrayList<Integer>());
-                    }
-                    latencies.get(elapsedSecond).add(latency);
-                }
-            }
-
-            br.close();
-            isr.close();
-            fis.close();
-        } catch(IOException e){
-            e.printStackTrace();
-        } finally {
-            try {
-                if(br != null) br.close();
-                if(isr != null) isr.close();
-                if(fis != null) fis.close();
-            } catch (IOException e) {
+                br.close();
+                isr.close();
+                fis.close();
+            } catch(IOException e){
                 e.printStackTrace();
-                System.exit(1);
+            } finally {
+                try {
+                    if(br != null) br.close();
+                    if(isr != null) isr.close();
+                    if(fis != null) fis.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    System.exit(1);
+                }
             }
         }
+
+        TreeMap<Integer, Integer> sendThroughputs = recorder.getSendThroughputs();
+        TreeMap<Integer, Integer> recvThroughputs = recorder.getRecvThroughputs();
+        TreeMap<Integer, Long> latencySums = recorder.getLatencySums();
+        TreeMap<Integer, Integer> latencyMaxs = recorder.getLatencyMaxs();
 
         int rampup = Integer.valueOf(cmd.getOptionValue(Opt.RAMP_UP.getName(), Opt.RAMP_UP.getDefaultValue()));
         int rampdown = Integer.valueOf(cmd.getOptionValue(Opt.RAMP_DOWN.getName(), Opt.RAMP_DOWN.getDefaultValue()));
 
         trimTreeMap(sendThroughputs, rampup, rampdown);
         trimTreeMap(recvThroughputs, rampup, rampdown);
-        trimTreeMap(latencies, rampup, rampdown);
+        trimTreeMap(latencySums, rampup, rampdown);
+        trimTreeMap(latencyMaxs, rampup, rampdown);
 
         paddingTreeMap(sendThroughputs);
         paddingTreeMap(recvThroughputs);
@@ -382,18 +372,17 @@ public class Loader {
         printThroughput(recvThroughputs, false);
 
         int maxLt = 0;
-        long sumLt = 0;
-        int count = 0;
-        for(ArrayList<Integer> latencyList: latencies.values()){
-            for(int latency: latencyList){
-                if(latency > maxLt) {
-                    maxLt = latency;
-                }
-                sumLt += latency;
-                count++;
+        double aveLt = 0;
+        long numMsg = 0;
+        for(int elapsedSecond: latencySums.keySet()) {
+            if(latencyMaxs.get(elapsedSecond) > maxLt) {
+                maxLt = latencyMaxs.get(elapsedSecond);
             }
+            int numInSec = recvThroughputs.get(elapsedSecond);
+            numMsg += numInSec;
+            double aveInSec = (double)latencySums.get(elapsedSecond)/numInSec;
+            aveLt = aveLt + ((aveInSec-aveLt)*numInSec)/numMsg;
         }
-        double aveLt = count>0 ? (double)sumLt/count : 0;
 
         System.out.println("Maximum latency[ms]: "+maxLt);
         System.out.println("Average latency[ms]: "+aveLt);

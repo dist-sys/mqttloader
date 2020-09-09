@@ -20,7 +20,7 @@ public class Constants {
     public static final String FILE_NAME_PREFIX = "mqttloader_";
     public static final String SUB_CLIENT_ID_PREFIX = "ml-s-";
     public static final String PUB_CLIENT_ID_PREFIX = "ml-p-";
-    public static final String STOP_SIGNAL = "TERMINATED";
+    public static final Record STOP_SIGNAL = new Record();
     public static final int MILLISECOND_IN_NANO = 1000000;
     public static final int SECOND_IN_NANO = 1000000;
     public static final int SECOND_IN_MILLI = 1000;
@@ -44,6 +44,7 @@ public class Constants {
         EXEC_TIME("et", "exectime", true, "Execution time in seconds.", "60"),
         LOG_LEVEL("l", "log", true, "Log level (SEVERE/WARNING/INFO/ALL).", "WARNING"),
         NTP("n", "ntp", true, "NTP server. E.g., ntp.nict.jp", null),
+        IN_MEMORY("mm", "inmemory", false, "Enable in-memory mode", null),
         HELP("h", "help", false, "Display help.", null);
 
         private String name;

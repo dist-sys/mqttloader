@@ -24,6 +24,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import mqttloader.Loader;
+import mqttloader.Record;
 
 public abstract class AbstractPublisher extends AbstractClient implements Runnable {
     protected final String topic;
@@ -96,13 +97,7 @@ public abstract class AbstractPublisher extends AbstractClient implements Runnab
     }
 
     protected void recordSend(long currentTime) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(currentTime);
-        sb.append(",");
-        sb.append(clientId);
-        sb.append(",S,");
-        Loader.queue.offer(new String(sb));
-
+        Loader.queue.offer(new Record(currentTime, clientId, true));
         Loader.logger.fine("Published a message (" + topic + "): "+clientId);
     }
 
