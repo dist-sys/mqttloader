@@ -17,6 +17,7 @@
 package mqttloader;
 
 public class Constants {
+    public static final String VERSION = "0.7.0";
     public static final String FILE_NAME_PREFIX = "mqttloader_";
     public static final String SUB_CLIENT_ID_PREFIX = "ml-s-";
     public static final String PUB_CLIENT_ID_PREFIX = "ml-p-";
@@ -42,7 +43,7 @@ public class Constants {
         INTERVAL("i", "interval", true, "Publish interval in milliseconds.", "0"),
         SUB_TIMEOUT("st", "subtimeout", true, "Subscribers' timeout in seconds.", "5"),
         EXEC_TIME("et", "exectime", true, "Execution time in seconds.", "60"),
-        LOG_LEVEL("l", "log", true, "Log level (SEVERE/WARNING/INFO/ALL).", "WARNING"),
+        LOG_LEVEL("l", "log", true, "Log level (SEVERE/WARNING/INFO/ALL).", "INFO"),
         NTP("n", "ntp", true, "NTP server. E.g., ntp.nict.jp", null),
         IN_MEMORY("mm", "inmemory", false, "Enable in-memory mode", null),
         HELP("h", "help", false, "Display help.", null);

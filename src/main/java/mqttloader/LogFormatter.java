@@ -25,11 +25,12 @@ public class LogFormatter extends Formatter {
     @Override
     public String format(LogRecord record) {
         return String.format(
-                "[%s] %s %s#%s %s%n",
+//                "[%s] %s %s#%s %s%n",
+                "[%s] %s  %s%n",
                 record.getLevel().getName(),
                 new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z").format(record.getMillis()),
-                record.getSourceClassName(),
-                record.getSourceMethodName(),
+//                record.getSourceClassName(),
+//                record.getSourceMethodName(),
                 record.getMessage()
         );
     }

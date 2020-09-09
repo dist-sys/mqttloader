@@ -18,7 +18,8 @@ dependencies {
 }
 
 run {
-    args '-h'.split('\\s+')
+//    args '-h'.split('\\s+')
+    args '-b tcp://192.168.47.129:1883 -p 1 -s 1 -m 10 -mm'.split('\\s+')
 }
 
 CreateStartScripts startScripts = project.startScripts

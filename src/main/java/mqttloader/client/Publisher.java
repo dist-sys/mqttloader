@@ -36,9 +36,9 @@ public class Publisher extends AbstractPublisher {
         try {
             client = new MqttClient(broker, clientId);
             client.connect(options);
-            Loader.logger.info("Publisher client is connected: "+clientId);
+            Loader.logger.info("Publisher " + clientId + " connected.");
         } catch (MqttException e) {
-            Loader.logger.warning("Publisher client fails to connect: "+clientId);
+            Loader.logger.warning("Publisher failed to connect (" + clientId + ").");
             e.printStackTrace();
         }
     }
@@ -50,7 +50,6 @@ public class Publisher extends AbstractPublisher {
         try {
             client.publish(topic, message);
         } catch (MqttException me) {
-            Loader.logger.warning("On sending publish, MqttException occurred: "+clientId);
             me.printStackTrace();
         }
 
@@ -69,7 +68,7 @@ public class Publisher extends AbstractPublisher {
         if (client.isConnected()) {
             try {
                 client.disconnect();
-                Loader.logger.info("Publisher client is disconnected: "+clientId);
+                Loader.logger.info("Publisher " + clientId + " disconnected.");
             } catch (MqttException e) {
                 e.printStackTrace();
             }

@@ -42,6 +42,6 @@ public abstract class AbstractSubscriber extends AbstractClient {
 
         Loader.queue.offer(new Record(currentTime, clientId, false, latency));
         Loader.lastRecvTime = currentTime;
-        Loader.logger.fine("Received a message (" + topic + "): "+clientId);
+        Loader.logger.fine("Received a message on topic \"" + topic + "\" (" + clientId + ").");
     }
 }

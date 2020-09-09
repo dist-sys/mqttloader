@@ -36,11 +36,11 @@ public class SubscriberV3 extends AbstractSubscriber implements MqttCallback {
             client = new MqttClient(broker, clientId);
             client.setCallback(this);
             client.connect(options);
-            Loader.logger.info("Subscriber client is connected: "+clientId);
+            Loader.logger.info("Subscriber " + clientId + " connected.");
             client.subscribe(topic, qos);
-            Loader.logger.info("Subscribed (" + topic + ", QoS:" + qos + "): " + clientId);
+            Loader.logger.info("Subscribed to topic \"" + topic + "\" with QoS " + qos + " (" + clientId + ").");
         } catch (MqttException e) {
-            Loader.logger.warning("Subscriber client fails to connect: "+clientId);
+            Loader.logger.warning("Subscriber failed to connect (" + clientId + ").");
             e.printStackTrace();
         }
     }
@@ -50,7 +50,7 @@ public class SubscriberV3 extends AbstractSubscriber implements MqttCallback {
         if (client.isConnected()) {
             try {
                 client.disconnect();
-                Loader.logger.info("Subscriber client is disconnected: "+clientId);
+                Loader.logger.info("Subscriber " + clientId + " disconnected.");
             } catch (MqttException e) {
                 e.printStackTrace();
             }

@@ -66,17 +66,17 @@ public abstract class AbstractPublisher extends AbstractClient implements Runnab
     private void continuousRun() {
         for(int i=0;i<numMessage;i++){
             if(cancelled) {
-                Loader.logger.info("Publish task is cancelled: "+clientId);
+                Loader.logger.info("Publish task cancelled (" + clientId + ").");
                 break;
             }
             if(isConnected()) {
                 publish();
             } else {
-                Loader.logger.warning("On sending publish, client was not connected: "+clientId);
+                Loader.logger.warning("Failed to publish (" + clientId + ").");
             }
         }
 
-        Loader.logger.info("Publisher finishes to send publish: "+clientId);
+        Loader.logger.info("Completed to publish (" + clientId + ").");
         Loader.countDownLatch.countDown();
     }
 
@@ -85,12 +85,12 @@ public abstract class AbstractPublisher extends AbstractClient implements Runnab
             if(isConnected()) {
                 publish();
             } else {
-                Loader.logger.warning("On sending publish, client was not connected: "+clientId);
+                Loader.logger.warning("Failed to publish (" + clientId + ").");
             }
 
             numMessage--;
             if(numMessage==0){
-                Loader.logger.info("Publisher finishes to send publish: "+clientId);
+                Loader.logger.info("Completed to publish (" + clientId + ").");
                 Loader.countDownLatch.countDown();
             }
         }
@@ -98,7 +98,7 @@ public abstract class AbstractPublisher extends AbstractClient implements Runnab
 
     protected void recordSend(long currentTime) {
         Loader.queue.offer(new Record(currentTime, clientId, true));
-        Loader.logger.fine("Published a message (" + topic + "): "+clientId);
+        Loader.logger.fine("Published a message to topic \"" + topic + "\" (" + clientId + ").");
     }
 
     protected void terminateTasks() {
