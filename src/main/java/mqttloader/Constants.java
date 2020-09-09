@@ -28,7 +28,7 @@ public class Constants {
 
     public enum Opt {
         BROKER("b", "broker", true, "Broker URL. E.g., tcp://127.0.0.1:1883", null, true),
-        VERSION("v", "version", true, "MQTT version (\"3\" for 3.1.1 or \"5\" for 5.0).", "5"),
+        MQTT_VERSION("v", "version", true, "MQTT version (\"3\" for 3.1.1 or \"5\" for 5.0).", "5"),
         NUM_PUB("p", "npub", true, "Number of publishers.", "1"),
         NUM_SUB("s", "nsub", true, "Number of subscribers.", "1"),
         PUB_QOS("pq", "pubqos", true, "QoS level of publishers (0/1/2).", "0"),
@@ -45,7 +45,7 @@ public class Constants {
         EXEC_TIME("et", "exectime", true, "Execution time in seconds.", "60"),
         LOG_LEVEL("l", "log", true, "Log level (SEVERE/WARNING/INFO/ALL).", "INFO"),
         NTP("n", "ntp", true, "NTP server. E.g., ntp.nict.jp", null),
-        IN_MEMORY("mm", "inmemory", false, "Enable in-memory mode", null),
+        IN_MEMORY("im", "inmemory", false, "Enable in-memory mode", null),
         HELP("h", "help", false, "Display help.", null);
 
         private String name;

@@ -170,6 +170,7 @@ public class Loader {
     }
 
     private void printHelp(Options options) {
+        System.out.println("MQTTLoader version " + Constants.VERSION);
         HelpFormatter help = new HelpFormatter();
         help.setOptionComparator(null);
         help.printHelp(Loader.class.getName(), options, true);
@@ -205,7 +206,7 @@ public class Loader {
 
     private void prepareClients() {
         String broker = cmd.getOptionValue(Opt.BROKER.getName(), Opt.BROKER.getDefaultValue());
-        int version = Integer.valueOf(cmd.getOptionValue(Opt.VERSION.getName(), Opt.VERSION.getDefaultValue()));
+        int version = Integer.valueOf(cmd.getOptionValue(Opt.MQTT_VERSION.getName(), Opt.MQTT_VERSION.getDefaultValue()));
         int numPub = Integer.valueOf(cmd.getOptionValue(Opt.NUM_PUB.getName(), Opt.NUM_PUB.getDefaultValue()));
         int numSub = Integer.valueOf(cmd.getOptionValue(Opt.NUM_SUB.getName(), Opt.NUM_SUB.getDefaultValue()));
         int pubQos = Integer.valueOf(cmd.getOptionValue(Opt.PUB_QOS.getName(), Opt.PUB_QOS.getDefaultValue()));
