@@ -45,9 +45,9 @@ import java.util.logging.Logger;
 
 import mqttloader.client.AbstractClient;
 import mqttloader.client.AbstractPublisher;
-import mqttloader.client.Publisher;
+import mqttloader.client.PublisherV5;
 import mqttloader.client.PublisherV3;
-import mqttloader.client.Subscriber;
+import mqttloader.client.SubscriberV5;
 import mqttloader.client.SubscriberV3;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -167,6 +167,27 @@ public class Loader {
             printHelp(options);
             exit(1);
         }
+
+        // Validate arguments.
+        int version = Integer.valueOf(cmd.getOptionValue(Opt.MQTT_VERSION.getName(), Opt.MQTT_VERSION.getDefaultValue()));
+        if(version != 3 && version != 5) {
+            logger.warning("\"-v\" parameter value must be 3 or 5.");
+            exit(1);
+        }
+        int pubqos = Integer.valueOf(cmd.getOptionValue(Opt.PUB_QOS.getName(), Opt.PUB_QOS.getDefaultValue()));
+        if(pubqos != 0 && pubqos != 1 && pubqos != 2) {
+            logger.warning("\"-pq\" parameter value must be 0 or 1 or 2.");
+            exit(1);
+        }
+        int subqos = Integer.valueOf(cmd.getOptionValue(Opt.SUB_QOS.getName(), Opt.SUB_QOS.getDefaultValue()));
+        if(subqos != 0 && subqos != 1 && subqos != 2) {
+            logger.warning("\"-sq\" parameter value must be 0 or 1 or 2.");
+            exit(1);
+        }
+        if(Integer.valueOf(cmd.getOptionValue(Opt.PAYLOAD.getName(), Opt.PAYLOAD.getDefaultValue())) < 8) {
+            logger.warning("\"-d\" parameter value must be equal to or larger than 8.");
+            exit(1);
+        }
     }
 
     private void printHelp(Options options) {
@@ -206,6 +227,9 @@ public class Loader {
 
     private void prepareClients() {
         String broker = cmd.getOptionValue(Opt.BROKER.getName(), Opt.BROKER.getDefaultValue());
+        if(!broker.startsWith("tcp://") && !broker.startsWith("ssl://")) {
+            broker = "tcp://"+broker;
+        }
         int version = Integer.valueOf(cmd.getOptionValue(Opt.MQTT_VERSION.getName(), Opt.MQTT_VERSION.getDefaultValue()));
         int numPub = Integer.valueOf(cmd.getOptionValue(Opt.NUM_PUB.getName(), Opt.NUM_PUB.getDefaultValue()));
         int numSub = Integer.valueOf(cmd.getOptionValue(Opt.NUM_SUB.getName(), Opt.NUM_SUB.getDefaultValue()));
@@ -220,7 +244,7 @@ public class Loader {
 
         for(int i=0;i<numPub;i++){
             if(version==5){
-                publishers.add(new Publisher(i, broker, pubQos, retain, topic, payloadSize, numMessage, pubInterval));
+                publishers.add(new PublisherV5(i, broker, pubQos, retain, topic, payloadSize, numMessage, pubInterval));
             }else{
                 publishers.add(new PublisherV3(i, broker, pubQos, retain, topic, payloadSize, numMessage, pubInterval));
             }
@@ -228,7 +252,7 @@ public class Loader {
 
         for(int i=0;i<numSub;i++){
             if(version==5){
-                subscribers.add(new Subscriber(i, broker, subQos, shSub, topic));
+                subscribers.add(new SubscriberV5(i, broker, subQos, shSub, topic));
             }else{
                 subscribers.add(new SubscriberV3(i, broker, subQos, topic));
             }
