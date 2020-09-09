@@ -50,6 +50,7 @@ public class SubscriberV5 extends AbstractSubscriber implements MqttCallback {
         } catch (MqttException e) {
             Loader.logger.warning("Subscriber failed to connect (" + clientId + ").");
             e.printStackTrace();
+            System.exit(1);
         }
     }
 

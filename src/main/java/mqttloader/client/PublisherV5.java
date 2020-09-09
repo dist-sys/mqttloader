@@ -42,6 +42,7 @@ public class PublisherV5 extends AbstractPublisher {
         } catch (MqttException e) {
             Loader.logger.warning("Publisher failed to connect (" + clientId + ").");
             e.printStackTrace();
+            System.exit(1);
         }
     }
 
