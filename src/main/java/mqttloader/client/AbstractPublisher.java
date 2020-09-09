@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import mqttloader.Loader;
 import mqttloader.Record;
+import mqttloader.Util;
 
 public abstract class AbstractPublisher extends AbstractClient implements Runnable {
     protected final String topic;

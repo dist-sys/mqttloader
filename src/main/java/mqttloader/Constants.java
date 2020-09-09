@@ -19,8 +19,9 @@ package mqttloader;
 public class Constants {
     public static final String VERSION = "0.7.0";
     public static final String FILE_NAME_PREFIX = "mqttloader_";
-    public static final String SUB_CLIENT_ID_PREFIX = "ml-s-";
-    public static final String PUB_CLIENT_ID_PREFIX = "ml-p-";
+    private static final String HOST_ID = Util.genRandomChars(4);
+    public static final String SUB_CLIENT_ID_PREFIX = "ml-"+HOST_ID+"-s-";
+    public static final String PUB_CLIENT_ID_PREFIX = "ml-"+HOST_ID+"-p-";
     public static final Record STOP_SIGNAL = new Record();
     public static final int MILLISECOND_IN_NANO = 1000000;
     public static final int SECOND_IN_NANO = 1000000;
