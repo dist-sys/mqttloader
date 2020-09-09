@@ -16,12 +16,7 @@
 
 package mqttloader.client;
 
-import static mqttloader.Constants.SUB_CLIENT_ID_PREFIX;
-
-import java.nio.ByteBuffer;
-
 import mqttloader.Loader;
-import mqttloader.Util;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -30,12 +25,11 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 
 
-public class SubscriberV3 implements MqttCallback, IClient {
+public class SubscriberV3 extends AbstractSubscriber implements MqttCallback {
     private MqttClient client;
-    private final String clientId;
 
     public SubscriberV3(int clientNumber, String broker, int qos, String topic) {
-        clientId = SUB_CLIENT_ID_PREFIX + String.format("%05d", clientNumber);
+        super(clientNumber);
         MqttConnectOptions options = new MqttConnectOptions();
         options.setMqttVersion(4);
         try {
@@ -52,10 +46,6 @@ public class SubscriberV3 implements MqttCallback, IClient {
     }
 
     @Override
-    public void start(long delay){
-    }
-
-    @Override
     public void disconnect() {
         if (client.isConnected()) {
             try {
@@ -68,35 +58,11 @@ public class SubscriberV3 implements MqttCallback, IClient {
     }
 
     @Override
-    public String getClientId() {
-        return clientId;
-    }
-
-    @Override
     public void connectionLost(Throwable cause) {}
 
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
-        long currentTime = Util.getCurrentTimeMillis();
-        long pubTime = ByteBuffer.wrap(message.getPayload()).getLong();
-        int latency = (int)(currentTime - pubTime);
-        if (latency < 0) {
-            // If running MQTTLoader on multiple machines, a slight time error may cause a negative value of latency.
-            latency = 0;
-            Loader.logger.fine("Negative value of latency is converted to zero.");
-        }
-
-        StringBuilder sb = new StringBuilder();
-        sb.append(currentTime);
-        sb.append(",");
-        sb.append(clientId);
-        sb.append(",R,");
-        sb.append(latency);
-        Loader.queue.offer(new String(sb));
-
-        Loader.lastRecvTime = currentTime;
-
-        Loader.logger.fine("Received a message (" + topic + "): "+clientId);
+        recordReceive(topic, message.getPayload());
     }
 
     @Override

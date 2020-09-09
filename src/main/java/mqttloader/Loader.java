@@ -43,7 +43,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import mqttloader.client.IClient;
+import mqttloader.client.AbstractClient;
+import mqttloader.client.AbstractPublisher;
 import mqttloader.client.Publisher;
 import mqttloader.client.PublisherV3;
 import mqttloader.client.Subscriber;
@@ -59,8 +60,8 @@ import org.apache.commons.net.ntp.TimeInfo;
 
 public class Loader {
     private CommandLine cmd = null;
-    private ArrayList<IClient> publishers = new ArrayList<>();
-    private ArrayList<IClient> subscribers = new ArrayList<>();
+    private ArrayList<AbstractClient> publishers = new ArrayList<>();
+    private ArrayList<AbstractClient> subscribers = new ArrayList<>();
     public static volatile long startTime;
     public static volatile long startNanoTime;
     private long endTime;
@@ -247,8 +248,8 @@ public class Loader {
         startNanoTime = System.nanoTime() + delay * Constants.MILLISECOND_IN_NANO;
         lastRecvTime = startTime;
 
-        for(IClient pub: publishers){
-            pub.start(delay);
+        for(AbstractClient pub: publishers){
+            ((AbstractPublisher)pub).start(delay);
         }
     }
 

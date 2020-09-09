@@ -16,12 +16,7 @@
 
 package mqttloader.client;
 
-import static mqttloader.Constants.SUB_CLIENT_ID_PREFIX;
-
-import java.nio.ByteBuffer;
-
 import mqttloader.Loader;
-import mqttloader.Util;
 import org.eclipse.paho.mqttv5.client.IMqttToken;
 import org.eclipse.paho.mqttv5.client.MqttCallback;
 import org.eclipse.paho.mqttv5.client.MqttClient;
@@ -31,12 +26,11 @@ import org.eclipse.paho.mqttv5.common.MqttException;
 import org.eclipse.paho.mqttv5.common.MqttMessage;
 import org.eclipse.paho.mqttv5.common.packet.MqttProperties;
 
-public class Subscriber implements MqttCallback, IClient {
+public class Subscriber extends AbstractSubscriber implements MqttCallback {
     private MqttClient client;
-    private final String clientId;
 
     public Subscriber(int clientNumber, String broker, int qos, boolean shSub, String topic) {
-        clientId = SUB_CLIENT_ID_PREFIX + String.format("%05d", clientNumber);
+        super(clientNumber);
         MqttConnectionOptions options = new MqttConnectionOptions();
         try {
             client = new MqttClient(broker, clientId);
@@ -58,10 +52,6 @@ public class Subscriber implements MqttCallback, IClient {
     }
 
     @Override
-    public void start(long delay){
-    }
-
-    @Override
     public void disconnect() {
         if (client.isConnected()) {
             try {
@@ -74,11 +64,6 @@ public class Subscriber implements MqttCallback, IClient {
     }
 
     @Override
-    public String getClientId() {
-        return clientId;
-    }
-
-    @Override
     public void disconnected(MqttDisconnectResponse disconnectResponse) {}
 
     @Override
@@ -86,26 +71,7 @@ public class Subscriber implements MqttCallback, IClient {
 
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
-        long currentTime = Util.getCurrentTimeMillis();
-        long pubTime = ByteBuffer.wrap(message.getPayload()).getLong();
-        int latency = (int)(currentTime - pubTime);
-        if (latency < 0) {
-            // If running MQTTLoader on multiple machines, a slight time error may cause a negative value of latency.
-            latency = 0;
-            Loader.logger.fine("Negative value of latency is converted to zero.");
-        }
-
-        StringBuilder sb = new StringBuilder();
-        sb.append(currentTime);
-        sb.append(",");
-        sb.append(clientId);
-        sb.append(",R,");
-        sb.append(latency);
-        Loader.queue.offer(new String(sb));
-
-        Loader.lastRecvTime = currentTime;
-
-        Loader.logger.fine("Received a message (" + topic + "): "+clientId);
+        recordReceive(topic, message.getPayload());
     }
 
     @Override

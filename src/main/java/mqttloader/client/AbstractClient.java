@@ -16,9 +16,16 @@
 
 package mqttloader.client;
 
+public abstract class AbstractClient {
+    protected final String clientId;
 
-public interface IClient {
-    String getClientId();
-    void start(long delay);
-    void disconnect();
+    public AbstractClient(String clientId) {
+        this.clientId = clientId;
+    }
+
+    public abstract void disconnect();
+
+    public String getClientId() {
+        return clientId;
+    }
 }
