@@ -265,8 +265,12 @@ public class Loader {
     private void startMeasurement() {
         // delay: Give ScheduledExecutorService time to setup scheduling.
         long delay = publishers.size();
-        startTime = System.currentTimeMillis() + getOffsetFromNtpServer() + delay;
-        startNanoTime = System.nanoTime() + delay * Constants.MILLISECOND_IN_NANO;
+        long offset = getOffsetFromNtpServer();
+        long currentTime = System.currentTimeMillis();
+        long currentNanoTime = System.nanoTime();
+
+        startTime = currentTime + offset + delay;
+        startNanoTime = currentNanoTime + delay * Constants.MILLISECOND_IN_NANO;
         lastRecvTime = startTime;
 
         for(AbstractClient pub: publishers){
