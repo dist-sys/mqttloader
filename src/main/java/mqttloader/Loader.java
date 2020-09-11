@@ -265,8 +265,12 @@ public class Loader {
     private void startMeasurement() {
         // delay: Give ScheduledExecutorService time to setup scheduling.
         long delay = publishers.size();
-        startTime = System.currentTimeMillis() + getOffsetFromNtpServer() + delay;
-        startNanoTime = System.nanoTime() + delay * Constants.MILLISECOND_IN_NANO;
+        long offset = getOffsetFromNtpServer();
+        long currentTime = System.currentTimeMillis();
+        long currentNanoTime = System.nanoTime();
+
+        startTime = currentTime + offset + delay;
+        startNanoTime = currentNanoTime + delay * Constants.MILLISECOND_IN_NANO;
         lastRecvTime = startTime;
 
         for(AbstractClient pub: publishers){
@@ -394,7 +398,7 @@ public class Loader {
         }
 
         System.out.println("Maximum latency[ms]: "+maxLt);
-        System.out.println("Average latency[ms]: "+aveLt);
+        System.out.println("Average latency[ms]: "+String.format("%.2f", aveLt));
     }
 
     private void trimTreeMap(TreeMap<Integer, ?> map, int rampup, int rampdown) {
@@ -439,7 +443,7 @@ public class Loader {
 
         double aveTh = throughputs.size()>0 ? (double)sumMsg/throughputs.size() : 0;
         System.out.println("Maximum throughput[msg/s]: "+maxTh);
-        System.out.println("Average throughput[msg/s]: "+aveTh);
+        System.out.println("Average throughput[msg/s]: "+String.format("%.2f", aveTh));
         if(forPublisher){
             System.out.println("Number of published messages: "+sumMsg);
         }else{
