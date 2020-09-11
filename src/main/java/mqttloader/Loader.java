@@ -398,7 +398,7 @@ public class Loader {
         }
 
         System.out.println("Maximum latency[ms]: "+maxLt);
-        System.out.println("Average latency[ms]: "+aveLt);
+        System.out.println("Average latency[ms]: "+String.format("%.2f", aveLt));
     }
 
     private void trimTreeMap(TreeMap<Integer, ?> map, int rampup, int rampdown) {
@@ -443,7 +443,7 @@ public class Loader {
 
         double aveTh = throughputs.size()>0 ? (double)sumMsg/throughputs.size() : 0;
         System.out.println("Maximum throughput[msg/s]: "+maxTh);
-        System.out.println("Average throughput[msg/s]: "+aveTh);
+        System.out.println("Average throughput[msg/s]: "+String.format("%.2f", aveTh));
         if(forPublisher){
             System.out.println("Number of published messages: "+sumMsg);
         }else{
