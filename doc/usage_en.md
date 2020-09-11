@@ -48,6 +48,10 @@ For example, the following command uses a public MQTT broker provided by HiveMQ.
 
 `$ ./mqttloader -b tcp://broker.hivemq.com:1883 -p 1 -s 1 -m 10`
 
+**By default, MQTTLoader writes out send/receive records to a file. Long term execution leads to increasing file size.**  
+If you want MQTTLoader not to output the file, you can run it with in-memory mode.  
+For more details, please refer to **4. How to read the results > Send/Receive record file**.
+
 ### Run on multiple machines
 You can run MQTTLoader on multiple machines.  
 
