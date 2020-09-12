@@ -3,6 +3,10 @@ plugins {
     id 'application'
 }
 
+wrapper {
+    gradleVersion = '6.6.1'
+}
+
 mainClassName = 'mqttloader.Loader'
 applicationDefaultJvmArgs = ['-Djava.util.logging.config.file=src/dist/logging.properties', '-Dfile.encoding=UTF-8', '--illegal-access=deny']
 
@@ -15,6 +19,10 @@ dependencies {
     implementation group: 'org.eclipse.paho', name: 'org.eclipse.paho.client.mqttv3', version: '1.2.5'
     implementation group: 'commons-cli', name: 'commons-cli', version: '1.4'
     implementation group: 'commons-net', name: 'commons-net', version: '3.7'
+}
+
+compileJava {
+    options.release = 8
 }
 
 run {

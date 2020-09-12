@@ -1,10 +1,10 @@
-# MQTTLoader usage
+# MQTTLoader usage (v0.7.2)
 MQTTLoader is a load testing tool (client tool) for MQTT.  
 It supports both MQTT v5.0 and v3.1.1.
 
 ## 1. Environment requirements
 MQTTLoader is available on Windows, MacOS, Ubuntu Linux or any platforms that supports Java.  
-It requires Java SE 14.0.1 or later.  
+It requires Java SE 8 or later.  
 Older versions might work, but are not tested.
 
 ## 2. Download and run
@@ -197,10 +197,11 @@ To build MQTTLoader, JDK and Gradle with the following versions are required.
 
 | Software | Version |
 |:-----------|:------------|
-| JDK | 14.0.1 or later |
-| Gradle | 4.9 or later |
+| JDK | 8 or later |
+| Gradle | 6.6 or later |
 
-Older versions might work, but are not tested.
+Older versions might work, but are not tested.  
+This repository has Gradle Wrapper, so that the required version of Gradle will be automatically installed when usin gradlew command in the following steps.
 
 ### 5-b. Download
 Clone the MQTTLoader repository from GitHub: `$ git clone git@github.com:dist-sys/mqttloader.git`  
@@ -209,20 +210,26 @@ The structure of the directories/files is as follows:
 ```
 mqttloader/
 +-- doc/
++-- gradle/
 +-- src/
++-- .gitignore
 +-- build.gradle
++-- gradlew
++-- gradlew.bat
 :
 ```
 
 Hereafter, the name of the root directory, where the file `build.gradle` exists, is denoted as *\<ROOT_DIR\>*.
 
 ### 5-c. Build
-Open a terminal software (e.g., xterm, command prompt, etc.) and you can build by the following Gradle command.
+Open a terminal software (e.g., xterm, command prompt, etc.) and you can build by the following gradlew command.
 ```
 $ cd <ROOT_DIR>
-$ gradle build
+$ ./gradlew build
 ```
 
+For Windows users, please use `gradlew.bat` instead of `./gradlew`.  
+When using gradlew command first time, it may take time because the required version of Gradle is automatically downloaded.  
 If successful, *build* directory is created under *\<ROOT_DIR\>*.
 You can find *distributions* directory under the *build* directory.  
 
@@ -236,7 +243,7 @@ You can find *distributions* directory under the *build* directory.
 By extracting the archive file (tar or zip), you can get the binary files of MQTTLoader.
 
 ### 5-d. Run MQTTLoader with Gradle
-You can run MQTTLoader by using Gradle command.
+You can run MQTTLoader by using gradlew command.
 
 In *\<ROOT_DIR\>/build.gradle*, the execution parameters are stated in the following part:
 
@@ -254,6 +261,6 @@ run {
 }
 ```
 
-Then, by using the following Gradle command in *\<ROOT_DIR\>*, you can run MQTTLoader.
+Then, by using the following gradlew command in *\<ROOT_DIR\>*, you can run MQTTLoader.
 
-`$ gradle run`
+`$ ./gradlew run`
