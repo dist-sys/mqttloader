@@ -22,11 +22,15 @@ import java.nio.ByteBuffer;
 
 import mqttloader.Loader;
 import mqttloader.Record;
+import mqttloader.Recorder;
 import mqttloader.Util;
 
 public abstract class AbstractSubscriber extends AbstractClient {
-    public AbstractSubscriber(int clientNumber) {
+    private Recorder recorder;
+
+    public AbstractSubscriber(int clientNumber, Recorder recorder) {
         super(SUB_CLIENT_ID_PREFIX + String.format("%05d", clientNumber));
+        this.recorder = recorder;
     }
 
     protected void recordReceive(String topic, byte[] payload) {
@@ -43,11 +47,11 @@ public abstract class AbstractSubscriber extends AbstractClient {
         if (latency < 0) {
             // If running MQTTLoader on multiple machines, a slight time error may cause a negative value of latency.
             latency = 0;
-            Loader.logger.fine("Negative value of latency is converted to zero.");
+            Loader.LOGGER.fine("Negative value of latency is converted to zero.");
         }
 
-        Loader.queue.offer(new Record(currentTime, clientId, false, latency));
+        recorder.record(new Record(currentTime, clientId, false, latency));
         Loader.lastRecvTime = currentTime;
-        Loader.logger.fine("Received a message on topic \"" + topic + "\" (" + clientId + ").");
+        Loader.LOGGER.fine("Received a message on topic \"" + topic + "\" (" + clientId + ").");
     }
 }

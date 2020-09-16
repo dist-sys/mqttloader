@@ -24,20 +24,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.InetAddress;
 import java.net.MalformedURLException;
-import java.net.SocketException;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.UnknownHostException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Iterator;
+import java.util.List;
 import java.util.StringTokenizer;
 import java.util.Timer;
 import java.util.TreeMap;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -52,96 +47,53 @@ import mqttloader.client.SubscriberV3;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.net.ntp.NTPUDPClient;
-import org.apache.commons.net.ntp.TimeInfo;
 
 public class Loader {
-    private CommandLine cmd = null;
-    private ArrayList<AbstractClient> publishers = new ArrayList<>();
-    private ArrayList<AbstractClient> subscribers = new ArrayList<>();
-    public static volatile long startTime = 0;
-    public static volatile long startNanoTime = 0;
-    private long endTime;
-    public static volatile long lastRecvTime;
-    public static ArrayBlockingQueue<Record> queue = new ArrayBlockingQueue<>(1000000);
-    private File file;
+    public static CommandLine cmd = null;
+    private final List<AbstractClient> publishers = new ArrayList<>();
+    private final List<AbstractClient> subscribers = new ArrayList<>();
+
+    public static volatile long startTime = 0;  // Measurement start time by System.currentTimeMillis()
+    public static volatile long startNanoTime = 0;  // Measurement start time by System.nanoTime()
+    private long endTime;  // Measurement end time
+    public static volatile long lastRecvTime;   // Last time any of subscribers received a message
+
     private Recorder recorder;
-    public static CountDownLatch countDownLatch;
-    public static Logger logger = Logger.getLogger(Loader.class.getName());
-    private SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z");
+    public static CountDownLatch cdl;
+
+    public static final Logger LOGGER = Logger.getLogger(Loader.class.getName());
 
     public Loader(String[] args) {
         setOptions(args);
 
-        String logLevel = cmd.getOptionValue(Opt.LOG_LEVEL.getName(), Opt.LOG_LEVEL.getDefaultValue());
-        logger.setLevel(Level.parse(logLevel));
-        logger.info("MQTTLoader version " + Constants.VERSION + " starting.");
+        LOGGER.setLevel(Level.parse(Util.getOptVal(Opt.LOG_LEVEL)));
+        LOGGER.info("MQTTLoader version " + Constants.VERSION + " starting.");
 
-        int numPub = Integer.valueOf(cmd.getOptionValue(Opt.NUM_PUB.getName(), Opt.NUM_PUB.getDefaultValue()));
-        int numSub = Integer.valueOf(cmd.getOptionValue(Opt.NUM_SUB.getName(), Opt.NUM_SUB.getDefaultValue()));
-        if (numSub > 0) {
-            countDownLatch = new CountDownLatch(numPub+1);  // For waiting for publishers' completion and subscribers' timeout.
-        } else {
-            countDownLatch = new CountDownLatch(numPub);
-        }
+        initFields();
 
-        logger.info("Preparing clients.");
+        LOGGER.info("Preparing clients.");
         prepareClients();
+        recorder.start();
 
-        boolean inMemory = cmd.hasOption(Opt.IN_MEMORY.getName());
-        if(!inMemory) {
-            file = getFile();
-            logger.info("Output file placed at: "+file.getAbsolutePath());
-        }
-        recorder = new Recorder(file, inMemory);
-        Thread fileThread = new Thread(recorder);
-        fileThread.start();
-
-        logger.info("Starting measurement.");
+        LOGGER.info("Starting measurement.");
         startMeasurement();
+        waitForMeasurement();
 
-        Timer timer = new Timer();
-        if(numSub > 0){
-            int subTimeout = Integer.valueOf(cmd.getOptionValue(Opt.SUB_TIMEOUT.getName(), Opt.SUB_TIMEOUT.getDefaultValue()));
-            timer.schedule(new RecvTimeoutTask(timer, subTimeout), subTimeout*1000);
-        }
-
-        int execTime = Integer.valueOf(cmd.getOptionValue(Opt.EXEC_TIME.getName(), Opt.EXEC_TIME.getDefaultValue()));
-        long holdNanoTime = Util.getElapsedNanoTime();
-        if(holdNanoTime > 0) execTime += (int)(holdNanoTime/Constants.MILLISECOND_IN_NANO);
-        try {
-            countDownLatch.await(execTime, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        if(countDownLatch.getCount()>0) {
-            logger.info("Measurement timed out.");
-        } else {
-            logger.info("Measurement completed.");
-        }
-
-        timer.cancel();
-
-        logger.info("Terminating clients.");
+        LOGGER.info("Terminating clients.");
         disconnectClients();
-
         endTime = Util.getCurrentTimeMillis();
+        recorder.terminate();
 
-        queue.offer(Constants.STOP_SIGNAL);
-        try {
-            fileThread.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        logger.info("Calculating results.");
+        LOGGER.info("Calculating results.");
         calcResult();
     }
 
+    /**
+     * Set parameter values from command-line arguments.
+     * @param args Command-line arguments.
+     */
     private void setOptions(String[] args) {
         Options options = new Options();
         for(Opt opt: Opt.values()){
@@ -154,7 +106,7 @@ public class Loader {
 
         for(String arg: args){
             if(arg.equals("-"+Opt.HELP.getName()) || arg.equals("--"+options.getOption(Opt.HELP.getName()).getLongOpt())){
-                printHelp(options);
+                Util.printHelp(options);
                 exit(0);
             }
         }
@@ -163,100 +115,113 @@ public class Loader {
         try {
             cmd = parser.parse(options, args);
         } catch (ParseException e) {
-            logger.severe("Failed to parse options.");
-            printHelp(options);
+            LOGGER.severe("Failed to parse options.");
+            Util.printHelp(options);
             exit(1);
         }
 
         // Validate arguments.
-        int version = Integer.valueOf(cmd.getOptionValue(Opt.MQTT_VERSION.getName(), Opt.MQTT_VERSION.getDefaultValue()));
+        int version = Util.getOptValInt(Opt.MQTT_VERSION);
         if(version != 3 && version != 5) {
-            logger.warning("\"-v\" parameter value must be 3 or 5.");
+            LOGGER.warning("\"-v\" parameter value must be 3 or 5.");
             exit(1);
         }
-        int pubqos = Integer.valueOf(cmd.getOptionValue(Opt.PUB_QOS.getName(), Opt.PUB_QOS.getDefaultValue()));
+        int pubqos = Util.getOptValInt(Opt.PUB_QOS);
         if(pubqos != 0 && pubqos != 1 && pubqos != 2) {
-            logger.warning("\"-pq\" parameter value must be 0 or 1 or 2.");
+            LOGGER.warning("\"-pq\" parameter value must be 0 or 1 or 2.");
             exit(1);
         }
-        int subqos = Integer.valueOf(cmd.getOptionValue(Opt.SUB_QOS.getName(), Opt.SUB_QOS.getDefaultValue()));
+        int subqos = Util.getOptValInt(Opt.SUB_QOS);
         if(subqos != 0 && subqos != 1 && subqos != 2) {
-            logger.warning("\"-sq\" parameter value must be 0 or 1 or 2.");
+            LOGGER.warning("\"-sq\" parameter value must be 0 or 1 or 2.");
             exit(1);
         }
-        if(Integer.valueOf(cmd.getOptionValue(Opt.PAYLOAD.getName(), Opt.PAYLOAD.getDefaultValue())) < 8) {
-            logger.warning("\"-d\" parameter value must be equal to or larger than 8.");
+        if(Util.getOptValInt(Opt.PAYLOAD) < 8) {
+            LOGGER.warning("\"-d\" parameter value must be equal to or larger than 8.");
             exit(1);
         }
     }
 
-    private void printHelp(Options options) {
-        System.out.println("MQTTLoader version " + Constants.VERSION);
-        HelpFormatter help = new HelpFormatter();
-        help.setOptionComparator(null);
-        help.printHelp(Loader.class.getName(), options, true);
+    /**
+     * Initialize fields that needs parameter values.
+     */
+    private void initFields() {
+        // If there is one or more subscriber(s), need to wait for subscribers' timeout in addition with publishers' completion.
+        cdl = Util.getOptValInt(Opt.NUM_SUB) > 0 ? new CountDownLatch(Util.getOptValInt(Opt.NUM_PUB)+1) : new CountDownLatch(Util.getOptValInt(Opt.NUM_PUB));
+        recorder = new Recorder(getFile(), Util.hasOpt(Opt.IN_MEMORY));
     }
 
-    private File getFile() {
-        File file;
-        try {
-            URL url = Loader.class.getProtectionDomain().getCodeSource().getLocation();
-            file = new File(new URL(url.toString()).toURI());
-            if(file.getParentFile().getName().equals("lib")){
-                file = file.getParentFile().getParentFile();
-            } else {
-                file = new File("").getAbsoluteFile();
-            }
-        } catch (SecurityException | NullPointerException | URISyntaxException | MalformedURLException e) {
-            file = new File("").getAbsoluteFile();
-        }
-        String date = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date(System.currentTimeMillis()+getOffsetFromNtpServer()));
-        file = new File(file, Constants.FILE_NAME_PREFIX+date+".csv");
-
-        if(file.exists()) {
-            file.delete();
-        }
-        try {
-            file.createNewFile();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return file;
-    }
-
+    /**
+     * Prepare MQTT clients and make them connect to the broker.
+     */
     private void prepareClients() {
-        String broker = cmd.getOptionValue(Opt.BROKER.getName(), Opt.BROKER.getDefaultValue());
+        String broker = Util.getOptVal(Opt.BROKER);
         if(!broker.startsWith("tcp://") && !broker.startsWith("ssl://")) {
             broker = "tcp://"+broker;
         }
-        int version = Integer.valueOf(cmd.getOptionValue(Opt.MQTT_VERSION.getName(), Opt.MQTT_VERSION.getDefaultValue()));
-        int numPub = Integer.valueOf(cmd.getOptionValue(Opt.NUM_PUB.getName(), Opt.NUM_PUB.getDefaultValue()));
-        int numSub = Integer.valueOf(cmd.getOptionValue(Opt.NUM_SUB.getName(), Opt.NUM_SUB.getDefaultValue()));
-        int pubQos = Integer.valueOf(cmd.getOptionValue(Opt.PUB_QOS.getName(), Opt.PUB_QOS.getDefaultValue()));
-        int subQos = Integer.valueOf(cmd.getOptionValue(Opt.SUB_QOS.getName(), Opt.SUB_QOS.getDefaultValue()));
-        boolean shSub = cmd.hasOption(Opt.SH_SUB.getName());
-        boolean retain = cmd.hasOption(Opt.RETAIN.getName());
-        String topic = cmd.getOptionValue(Opt.TOPIC.getName(), Opt.TOPIC.getDefaultValue());
-        int payloadSize = Integer.valueOf(cmd.getOptionValue(Opt.PAYLOAD.getName(), Opt.PAYLOAD.getDefaultValue()));
-        int numMessage = Integer.valueOf(cmd.getOptionValue(Opt.NUM_MSG.getName(), Opt.NUM_MSG.getDefaultValue()));
-        int pubInterval = Integer.valueOf(cmd.getOptionValue(Opt.INTERVAL.getName(), Opt.INTERVAL.getDefaultValue()));
-
+        int version = Util.getOptValInt(Opt.MQTT_VERSION);
+        int numPub = Util.getOptValInt(Opt.NUM_PUB);
+        int numSub = Util.getOptValInt(Opt.NUM_SUB);
+        int pubQos = Util.getOptValInt(Opt.PUB_QOS);
+        int subQos = Util.getOptValInt(Opt.SUB_QOS);
+        boolean shSub = Util.hasOpt(Opt.SH_SUB);
+        boolean retain = Util.hasOpt(Opt.RETAIN);
+        String topic = Util.getOptVal(Opt.TOPIC);
+        int payloadSize = Util.getOptValInt(Opt.PAYLOAD);
+        int numMessage = Util.getOptValInt(Opt.NUM_MSG);
+        int pubInterval = Util.getOptValInt(Opt.INTERVAL);
         for(int i=0;i<numPub;i++){
             if(version==5){
-                publishers.add(new PublisherV5(i, broker, pubQos, retain, topic, payloadSize, numMessage, pubInterval));
+                publishers.add(new PublisherV5(i, broker, pubQos, retain, topic, payloadSize, numMessage, pubInterval, recorder));
             }else{
-                publishers.add(new PublisherV3(i, broker, pubQos, retain, topic, payloadSize, numMessage, pubInterval));
+                publishers.add(new PublisherV3(i, broker, pubQos, retain, topic, payloadSize, numMessage, pubInterval, recorder));
             }
         }
 
         for(int i=0;i<numSub;i++){
             if(version==5){
-                subscribers.add(new SubscriberV5(i, broker, subQos, shSub, topic));
+                subscribers.add(new SubscriberV5(i, broker, subQos, shSub, topic, recorder));
             }else{
-                subscribers.add(new SubscriberV3(i, broker, subQos, topic));
+                subscribers.add(new SubscriberV3(i, broker, subQos, topic, recorder));
             }
         }
+    }
+
+    /**
+     * Obtain a File object to be used to store sending/receiving records by Recorder instance.
+     * @return File instance. NULL if the parameter "-im" is specified.
+     */
+    private File getFile() {
+        File file = null;
+        if (!Util.hasOpt(Opt.IN_MEMORY)) {
+            try {
+                URL url = Loader.class.getProtectionDomain().getCodeSource().getLocation();
+                file = new File(new URL(url.toString()).toURI());
+                if(file.getParentFile().getName().equals("lib")){
+                    file = file.getParentFile().getParentFile();
+                } else {
+                    file = new File("").getAbsoluteFile();
+                }
+            } catch (SecurityException | NullPointerException | URISyntaxException | MalformedURLException e) {
+                file = new File("").getAbsoluteFile();
+            }
+//            String date = Constants.DATE_FORMAT_FOR_FILENAME.format(new Date(System.currentTimeMillis() + offset));
+            String date = Constants.DATE_FORMAT_FOR_FILENAME.format(new Date(System.currentTimeMillis()));
+            file = new File(file, Constants.FILE_NAME_PREFIX+date+".csv");
+
+            if(file.exists()) {
+                file.delete();
+            }
+            try {
+                file.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            LOGGER.info("Output file placed at: " + file.getAbsolutePath());
+        }
+
+        return file;
     }
 
     /**
@@ -265,7 +230,7 @@ public class Loader {
     private void startMeasurement() {
         // delay: Give ScheduledExecutorService time to setup scheduling.
         long delay = publishers.size();
-        long offset = getOffsetFromNtpServer();
+        long offset = Util.getOffsetFromNtpServer();
         long currentTime = System.currentTimeMillis();
         long currentNanoTime = System.nanoTime();
 
@@ -278,56 +243,62 @@ public class Loader {
         }
     }
 
-    private long getOffsetFromNtpServer() {
-        String ntpServer = cmd.getOptionValue(Opt.NTP.getName(), Opt.NTP.getDefaultValue());
-        long offset = 0;
-        if(ntpServer != null) {
-            logger.info("Getting time information from NTP server.");
-            NTPUDPClient client = new NTPUDPClient();
-            client.setDefaultTimeout(5000);
-            InetAddress address = null;
-            TimeInfo ti = null;
+    /**
+     * Wait for completion of measurement.
+     * This method waits until all publishers complete sending PUBLISH messages and the time specified by parameter "-st" elapses since all subscribers last received a message.
+     * Nevertheless, when the time specified by parameter "-et" elapses, it goes into a timeout.
+     */
+    private void waitForMeasurement() {
+        Timer timer = null;
+        if(Util.getOptValInt(Opt.NUM_SUB) > 0){
+            timer = new Timer();
+            int subTimeout = Util.getOptValInt(Opt.SUB_TIMEOUT);
+            timer.schedule(new RecvTimeoutTask(timer, subTimeout), subTimeout*1000);
+        }
+
+        int execTime = Util.getOptValInt(Opt.EXEC_TIME);
+        execTime -= (int)(Util.getElapsedNanoTime()/Constants.SECOND_IN_NANO);
+        if(execTime > 0) {
             try {
-                address = InetAddress.getByName(ntpServer);
-                client.open();
-                ti = client.getTime(address);
-            } catch (UnknownHostException e) {
+                cdl.await(execTime, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
                 e.printStackTrace();
-            } catch (SocketException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            if(ti != null) {
-                ti.computeDetails();
-                offset = ti.getOffset();
-                logger.info("Offset is "+offset+" milliseconds.");
-            } else {
-                logger.warning("Failed to get time information from NTP server.");
             }
         }
 
-        return offset;
+        if(cdl.getCount()>0) {
+            LOGGER.info("Measurement timed out.");
+        } else {
+            LOGGER.info("Measurement completed.");
+        }
+
+        if (timer != null) {
+            timer.cancel();
+        }
     }
 
+    /**
+     * Disconnect MQTT clients from the broker.
+     */
     private void disconnectClients() {
-        for(int i=0;i<publishers.size();i++){
-            publishers.get(i).disconnect();
+        for(AbstractClient pub: publishers) {
+            pub.disconnect();
         }
-
-        for(int i=0;i<subscribers.size();i++){
-            subscribers.get(i).disconnect();
+        for(AbstractClient sub: subscribers) {
+            sub.disconnect();
         }
     }
 
+    /**
+     * Calculate the measurement result.
+     */
     private void calcResult() {
-        if(!cmd.hasOption(Opt.IN_MEMORY.getName())) {
+        if(!Util.hasOpt(Opt.IN_MEMORY)) {
             FileInputStream fis = null;
             InputStreamReader isr = null;
             BufferedReader br = null;
             try{
-                fis = new FileInputStream(file);
+                fis = new FileInputStream(recorder.getFile());
                 isr = new InputStreamReader(fis);
                 br = new BufferedReader(isr);
 
@@ -367,17 +338,21 @@ public class Loader {
         TreeMap<Integer, Long> latencySums = recorder.getLatencySums();
         TreeMap<Integer, Integer> latencyMaxs = recorder.getLatencyMaxs();
 
-        int rampup = Integer.valueOf(cmd.getOptionValue(Opt.RAMP_UP.getName(), Opt.RAMP_UP.getDefaultValue()));
-        int rampdown = Integer.valueOf(cmd.getOptionValue(Opt.RAMP_DOWN.getName(), Opt.RAMP_DOWN.getDefaultValue()));
+        int rampup = Util.getOptValInt(Opt.RAMP_UP);
+        int rampdown = Util.getOptValInt(Opt.RAMP_DOWN);
 
-        trimTreeMap(sendThroughputs, rampup, rampdown);
-        trimTreeMap(recvThroughputs, rampup, rampdown);
-        trimTreeMap(latencySums, rampup, rampdown);
-        trimTreeMap(latencyMaxs, rampup, rampdown);
+        Util.trimTreeMap(sendThroughputs, rampup, rampdown);
+        Util.trimTreeMap(recvThroughputs, rampup, rampdown);
+        Util.trimTreeMap(latencySums, rampup, rampdown);
+        Util.trimTreeMap(latencyMaxs, rampup, rampdown);
 
-        paddingTreeMap(sendThroughputs);
-        paddingTreeMap(recvThroughputs);
+        Util.paddingTreeMap(sendThroughputs);
+        Util.paddingTreeMap(recvThroughputs);
 
+        System.out.println();
+        System.out.println("Measurement started: " + Constants.DATE_FORMAT_FOR_LOG.format(new Date(startTime)));
+        System.out.println("Measurement ended: " + Constants.DATE_FORMAT_FOR_LOG.format(new Date(endTime)));
+        System.out.println();
         System.out.println("-----Publisher-----");
         printThroughput(sendThroughputs, true);
         System.out.println();
@@ -401,35 +376,11 @@ public class Loader {
         System.out.println("Average latency[ms]: "+String.format("%.2f", aveLt));
     }
 
-    private void trimTreeMap(TreeMap<Integer, ?> map, int rampup, int rampdown) {
-        if(map.size() == 0) {
-            return;
-        }
-        int firstTime = map.firstKey();
-        int lastTime = map.lastKey();
-        Iterator<Integer> itr = map.keySet().iterator();
-        while(itr.hasNext()){
-            int time = itr.next();
-            if(time < rampup+firstTime) {
-                itr.remove();
-            }else if(time > lastTime-rampdown){
-                itr.remove();
-            }
-        }
-    }
-
-    private void paddingTreeMap(TreeMap<Integer, Integer> map) {
-        if(map.size() == 0) {
-            return;
-        }
-
-        for(int i=map.firstKey();i<map.lastKey()+1;i++) {
-            if(!map.containsKey(i)) {
-                map.put(i, 0);
-            }
-        }
-    }
-
+    /**
+     * Print out throughput result to console.
+     * @param throughputs Map object storing throughput data. keys are the elapsed seconds from the measurement start time, and values are the number of messages for that one second.
+     * @param forPublisher True if it is the publisher-side throughput. False if it is the subscriber-side throughput.
+     */
     private void printThroughput(TreeMap<Integer, Integer> throughputs, boolean forPublisher) {
         int maxTh = 0;
         int sumMsg = 0;

@@ -1,9 +1,9 @@
-# MQTTLoader 利用方法
+# MQTTLoader 利用方法 (v0.7.2)
 MQTTLoaderは、MQTT v5.0とv3.1.1に対応した負荷テストツール（クライアントツール）です。
 
 ## 1. 環境要件
 MQTTLoader は Java を利用可能なOS（Windows, MacOS, Ubuntu Linux等）上で動きます。  
-Java SE 14.0.1 以降での動作を確認しています。（それより前のバージョンでの動作は未確認です）
+Java SE 8以降で動作します。（より古いバージョンでの動作は未確認です。）
 
 ## 2. ダウンロード＆実行
 以下のURLからアーカイブファイル（zip or tar）をダウンロードできます。
@@ -197,10 +197,11 @@ MQTTLoaderのビルドには、以下バージョンのJDKとGradleが必要で�
 
 | Software | Version |
 |:-----------|:------------|
-| JDK | 14.0.1 or later |
-| Gradle | 4.9 or later |
+| JDK | 8 or later |
+| Gradle | 6.6 or later |
 
-上記より前のバージョンでの動作は未確認です。
+上記より前のバージョンでの動作は未確認です。  
+なお、Gradle wrapperを用意してあるため、以降の手順でgradlewコマンドを使う際に、Gradleは自動的にインストールされます。
 
 ### 5-b. ダウンロード
 GitHubからクローンしてください： `$ git clone git@github.com:dist-sys/mqttloader.git`  
@@ -209,8 +210,12 @@ GitHubからクローンしてください： `$ git clone git@github.com:dist-s
 ```
 mqttloader/
 +-- doc/
++-- gradle/
 +-- src/
++-- .gitignore
 +-- build.gradle
++-- gradlew
++-- gradlew.bat
 :
 ```
 
@@ -221,9 +226,11 @@ mqttloader/
 
 ```
 $ cd <ROOT_DIR>
-$ gradle build
+$ ./gradlew build
 ```
 
+Windowsユーザは、 `./gradlew` の代わりに `gradlew.bat` を使ってください（以降も同じ）。  
+gradlewコマンドを初めて実行する際には、Gradleが自動的にダウンロードされるため、少し時間がかかります。  
 成功すると、*\<ROOT_DIR\>* 配下に *build* ディレクトリが生成されます。
 
 ```
@@ -237,7 +244,7 @@ $ gradle build
 *distributions* ディレクトリに入っているアーカイブファイル（tar または zip）を解凍することで、MQTTLoaderのバイナリが得られます。
 
 ### 5-d. GradleによるMQTTLoaderの実行
-Gradleコマンドを使ってMQTTLoaderを実行することもできます。
+gradlewコマンドを使ってMQTTLoaderを実行することもできます。
 
 *\<ROOT_DIR\>/build.gradle* 内の以下の箇所に、実行時オプションが記述されています。
 
@@ -255,6 +262,6 @@ run {
 }
 ```
 
-上記のように *build.gradle* にオプションを記述した上で、 *\<ROOT_DIR\>* にて以下のGradleコマンドを実行することで、MQTTLoaderを実行できます。 
+上記のように *build.gradle* にオプションを記述した上で、 *\<ROOT_DIR\>* にて以下のgradlewコマンドを実行することで、MQTTLoaderを実行できます。 
 
-`$ gradle run`
+`$ ./gradlew run`

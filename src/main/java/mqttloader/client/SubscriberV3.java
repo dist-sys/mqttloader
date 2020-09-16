@@ -17,6 +17,7 @@
 package mqttloader.client;
 
 import mqttloader.Loader;
+import mqttloader.Recorder;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -29,8 +30,8 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 public class SubscriberV3 extends AbstractSubscriber implements MqttCallback {
     private MqttClient client;
 
-    public SubscriberV3(int clientNumber, String broker, int qos, String topic) {
-        super(clientNumber);
+    public SubscriberV3(int clientNumber, String broker, int qos, String topic, Recorder recorder) {
+        super(clientNumber, recorder);
         MqttConnectOptions options = new MqttConnectOptions();
         options.setMqttVersion(4);
         options.setCleanSession(true);
@@ -38,11 +39,11 @@ public class SubscriberV3 extends AbstractSubscriber implements MqttCallback {
             client = new MqttClient(broker, clientId, new MemoryPersistence());
             client.setCallback(this);
             client.connect(options);
-            Loader.logger.info("Subscriber " + clientId + " connected.");
+            Loader.LOGGER.info("Subscriber " + clientId + " connected.");
             client.subscribe(topic, qos);
-            Loader.logger.info("Subscribed to topic \"" + topic + "\" with QoS " + qos + " (" + clientId + ").");
+            Loader.LOGGER.info("Subscribed to topic \"" + topic + "\" with QoS " + qos + " (" + clientId + ").");
         } catch (MqttException e) {
-            Loader.logger.warning("Subscriber failed to connect (" + clientId + ").");
+            Loader.LOGGER.warning("Subscriber failed to connect (" + clientId + ").");
             e.printStackTrace();
             System.exit(1);
         }
@@ -53,7 +54,7 @@ public class SubscriberV3 extends AbstractSubscriber implements MqttCallback {
         if (client.isConnected()) {
             try {
                 client.disconnect();
-                Loader.logger.info("Subscriber " + clientId + " disconnected.");
+                Loader.LOGGER.info("Subscriber " + clientId + " disconnected.");
             } catch (MqttException e) {
                 e.printStackTrace();
             }

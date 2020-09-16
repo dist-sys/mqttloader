@@ -17,6 +17,7 @@
 package mqttloader.client;
 
 import mqttloader.Loader;
+import mqttloader.Recorder;
 import mqttloader.Util;
 import org.eclipse.paho.mqttv5.client.MqttClient;
 import org.eclipse.paho.mqttv5.client.MqttConnectionOptions;
@@ -28,8 +29,8 @@ public class PublisherV5 extends AbstractPublisher {
     private MqttClient client;
     private MqttMessage message = new MqttMessage();
 
-    public PublisherV5(int clientNumber, String broker, int qos, boolean retain, String topic, int payloadSize, int numMessage, int pubInterval) {
-        super(clientNumber, topic, payloadSize, numMessage, pubInterval);
+    public PublisherV5(int clientNumber, String broker, int qos, boolean retain, String topic, int payloadSize, int numMessage, int pubInterval, Recorder recorder) {
+        super(clientNumber, topic, payloadSize, numMessage, pubInterval, recorder);
         message.setQos(qos);
         message.setRetained(retain);
 
@@ -38,9 +39,9 @@ public class PublisherV5 extends AbstractPublisher {
         try {
             client = new MqttClient(broker, clientId, new MemoryPersistence());
             client.connect(options);
-            Loader.logger.info("Publisher " + clientId + " connected.");
+            Loader.LOGGER.info("Publisher " + clientId + " connected.");
         } catch (MqttException e) {
-            Loader.logger.warning("Publisher failed to connect (" + clientId + ").");
+            Loader.LOGGER.warning("Publisher failed to connect (" + clientId + ").");
             e.printStackTrace();
             System.exit(1);
         }
@@ -71,7 +72,7 @@ public class PublisherV5 extends AbstractPublisher {
         if (client.isConnected()) {
             try {
                 client.disconnect();
-                Loader.logger.info("Publisher " + clientId + " disconnected.");
+                Loader.LOGGER.info("Publisher " + clientId + " disconnected.");
             } catch (MqttException e) {
                 e.printStackTrace();
             }
