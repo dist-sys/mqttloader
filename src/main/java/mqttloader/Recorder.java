@@ -23,9 +23,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.TreeMap;
+import java.util.concurrent.ArrayBlockingQueue;
 
 public class Recorder implements Runnable {
     private final boolean inMemory;
+    private final ArrayBlockingQueue<Record> queue = new ArrayBlockingQueue<>(1000000);
+
+    private Thread thread;
 
     private File file;
     private FileOutputStream fos = null;
@@ -39,6 +43,7 @@ public class Recorder implements Runnable {
 
     public Recorder(File file, boolean inMemory) {
         this.inMemory = inMemory;
+        this.file = file;
         if(!inMemory) {
             try {
                 fos = new FileOutputStream(file, true);
@@ -52,10 +57,12 @@ public class Recorder implements Runnable {
 
     @Override
     public void run() {
+        thread = Thread.currentThread();
+
         Record record = null;
         while (true) {
             try {
-                record = Loader.queue.take();
+                record = queue.take();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -138,6 +145,27 @@ public class Recorder implements Runnable {
                 latencyMaxs.put(elapsedSecond, record.getLatency());
             }
         }
+    }
+
+    public void record(Record record) {
+        queue.offer(record);
+    }
+
+    public void start() {
+        new Thread(this).start();
+    }
+
+    public void terminate() {
+        queue.offer(Constants.STOP_SIGNAL);
+        try {
+            thread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public File getFile() {
+        return file;
     }
 
     public TreeMap<Integer, Integer> getSendThroughputs() {

@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import mqttloader.Loader;
 import mqttloader.Record;
+import mqttloader.Recorder;
 
 public abstract class AbstractPublisher extends AbstractClient implements Runnable {
     protected final String topic;
@@ -34,15 +35,16 @@ public abstract class AbstractPublisher extends AbstractClient implements Runnab
 
     protected ScheduledExecutorService service;
     protected ScheduledFuture future;
-
     protected volatile boolean cancelled = false;
+    private Recorder recorder;
 
-    public AbstractPublisher(int clientNumber, String topic, int payloadSize, int numMessage, int pubInterval) {
+    public AbstractPublisher(int clientNumber, String topic, int payloadSize, int numMessage, int pubInterval, Recorder recorder) {
         super(PUB_CLIENT_ID_PREFIX + String.format("%05d", clientNumber));
         this.topic = topic;
         this.payloadSize = payloadSize;
         this.numMessage = numMessage;
         this.pubInterval = pubInterval;
+        this.recorder = recorder;
     }
 
     public void start(long delay) {
@@ -66,18 +68,18 @@ public abstract class AbstractPublisher extends AbstractClient implements Runnab
     private void continuousRun() {
         for(int i=0;i<numMessage;i++){
             if(cancelled) {
-                Loader.logger.info("Publish task cancelled (" + clientId + ").");
+                Loader.LOGGER.info("Publish task cancelled (" + clientId + ").");
                 break;
             }
             if(isConnected()) {
                 publish();
             } else {
-                Loader.logger.warning("Failed to publish (" + clientId + ").");
+                Loader.LOGGER.warning("Failed to publish (" + clientId + ").");
             }
         }
 
-        Loader.logger.info("Completed to publish (" + clientId + ").");
-        Loader.countDownLatch.countDown();
+        Loader.LOGGER.info("Completed to publish (" + clientId + ").");
+        Loader.cdl.countDown();
     }
 
     private void periodicalRun() {
@@ -85,20 +87,20 @@ public abstract class AbstractPublisher extends AbstractClient implements Runnab
             if(isConnected()) {
                 publish();
             } else {
-                Loader.logger.warning("Failed to publish (" + clientId + ").");
+                Loader.LOGGER.warning("Failed to publish (" + clientId + ").");
             }
 
             numMessage--;
             if(numMessage==0){
-                Loader.logger.info("Completed to publish (" + clientId + ").");
-                Loader.countDownLatch.countDown();
+                Loader.LOGGER.info("Completed to publish (" + clientId + ").");
+                Loader.cdl.countDown();
             }
         }
     }
 
     protected void recordSend(long currentTime) {
-        Loader.queue.offer(new Record(currentTime, clientId, true));
-        Loader.logger.fine("Published a message to topic \"" + topic + "\" (" + clientId + ").");
+        recorder.record(new Record(currentTime, clientId, true));
+        Loader.LOGGER.fine("Published a message to topic \"" + topic + "\" (" + clientId + ").");
     }
 
     protected void terminateTasks() {

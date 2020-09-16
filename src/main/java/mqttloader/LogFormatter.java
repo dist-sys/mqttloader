@@ -16,7 +16,6 @@
 
 package mqttloader;
 
-import java.text.SimpleDateFormat;
 import java.util.logging.Formatter;
 import java.util.logging.LogRecord;
 
@@ -28,7 +27,7 @@ public class LogFormatter extends Formatter {
 //                "[%s] %s %s#%s %s%n",
                 "[%s] %s  %s%n",
                 record.getLevel().getName(),
-                new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z").format(record.getMillis()),
+                Constants.DATE_FORMAT_FOR_LOG.format(record.getMillis()),
 //                record.getSourceClassName(),
 //                record.getSourceMethodName(),
                 record.getMessage()
