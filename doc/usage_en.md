@@ -181,7 +181,7 @@ Each line, consists of comma-separeted values, indicates the following data.
 In the case that the event type is `R`, latency data follows.
 
 ```
-timestamp (Unix time), client ID, event type (S: send, R: receive), latency
+timestamp (Unix time in milliseconds), client ID, event type (S: send, R: receive), latency (in milliseconds)
 ```
 
 Although MQTTLoader outputs the measurement result to the console, you can use the above .csv file for further analysis.  
