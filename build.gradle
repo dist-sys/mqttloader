@@ -22,7 +22,6 @@ dependencies {
 }
 
 compileJava {
-    options.release = 8
 }
 
 run {
