@@ -19,7 +19,7 @@ package mqttloader;
 import java.text.SimpleDateFormat;
 
 public class Constants {
-    public static final String VERSION = "0.7.2";
+    public static final String VERSION = "0.7.3";
     public static final String FILE_NAME_PREFIX = "mqttloader_";
     private static final String HOST_ID = Util.genRandomChars(4);
     public static final String SUB_CLIENT_ID_PREFIX = "ml-"+HOST_ID+"-s-";
@@ -51,6 +51,8 @@ public class Constants {
         LOG_LEVEL("l", "log", true, "Log level (SEVERE/WARNING/INFO/ALL).", "INFO"),
         NTP("n", "ntp", true, "NTP server. E.g., ntp.nict.jp", null),
         IN_MEMORY("im", "inmemory", false, "Enable in-memory mode", null),
+        USERNAME("un", "username", true, "User name for authentication", null),
+        PASSWORD("pw", "password", true, "Password for authentication", null),
         HELP("h", "help", false, "Display help.", null);
 
         private String name;

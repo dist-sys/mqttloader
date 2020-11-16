@@ -160,6 +160,8 @@ public class Loader {
             broker = "tcp://"+broker;
         }
         int version = Util.getOptValInt(Opt.MQTT_VERSION);
+        String userName = Util.getOptVal(Opt.USERNAME);
+        String password = Util.getOptVal(Opt.PASSWORD);
         int numPub = Util.getOptValInt(Opt.NUM_PUB);
         int numSub = Util.getOptValInt(Opt.NUM_SUB);
         int pubQos = Util.getOptValInt(Opt.PUB_QOS);
@@ -172,17 +174,17 @@ public class Loader {
         int pubInterval = Util.getOptValInt(Opt.INTERVAL);
         for(int i=0;i<numPub;i++){
             if(version==5){
-                publishers.add(new PublisherV5(i, broker, pubQos, retain, topic, payloadSize, numMessage, pubInterval, recorder));
+                publishers.add(new PublisherV5(i, broker, userName, password, pubQos, retain, topic, payloadSize, numMessage, pubInterval, recorder));
             }else{
-                publishers.add(new PublisherV3(i, broker, pubQos, retain, topic, payloadSize, numMessage, pubInterval, recorder));
+                publishers.add(new PublisherV3(i, broker, userName, password, pubQos, retain, topic, payloadSize, numMessage, pubInterval, recorder));
             }
         }
 
         for(int i=0;i<numSub;i++){
             if(version==5){
-                subscribers.add(new SubscriberV5(i, broker, subQos, shSub, topic, recorder));
+                subscribers.add(new SubscriberV5(i, broker, userName, password, subQos, shSub, topic, recorder));
             }else{
-                subscribers.add(new SubscriberV3(i, broker, subQos, topic, recorder));
+                subscribers.add(new SubscriberV3(i, broker, userName, password, subQos, topic, recorder));
             }
         }
     }

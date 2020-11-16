@@ -1,4 +1,4 @@
-# MQTTLoader usage (v0.7.2)
+# MQTTLoader usage (v0.7.3)
 MQTTLoader is a load testing tool (client tool) for MQTT.  
 It supports both MQTT v5.0 and v3.1.1.
 
@@ -27,11 +27,11 @@ You can display the help by:
 `$ ./mqttloader -h`
 
 ```
-MQTTLoader version 0.7.0
+MQTTLoader version 0.7.3
 usage: mqttloader.Loader -b <arg> [-v <arg>] [-p <arg>] [-s <arg>] [-pq
        <arg>] [-sq <arg>] [-ss] [-r] [-t <arg>] [-d <arg>] [-m <arg>] [-ru
        <arg>] [-rd <arg>] [-i <arg>] [-st <arg>] [-et <arg>] [-l <arg>]
-       [-n <arg>] [-im] [-h]
+       [-n <arg>] [-im] [-un <arg>] [-pw <arg>] [-h]
  -b,--broker <arg>        Broker URL. E.g., tcp://127.0.0.1:1883
  -v,--version <arg>       MQTT version ("3" for 3.1.1 or "5" for 5.0).
   :
@@ -98,6 +98,8 @@ Please refer to **3. Parameteres of MQTTLoader** for more details of each parame
 | -l \<arg\> | INFO | Log level. <br>Valid values are `SEVERE`/`WARNING`/`INFO`/`ALL`. |
 | -n \<arg\> | (none) | URL of the NTP server. By setting this, time synchronization is enabled. <br>Ex. `ntp.nict.jp` |
 | -im \<arg\> | (none) | Run MQTTLoader by in-memory mode. By default, MQTTLoader writes out measurement records to a file. |
+| -un \<arg\> | (none) | User name. Required if the broker has the configuration of password authentication. |
+| -pw \<arg\> | (none) | Password. Required if the broker has the configuration of password authentication. |
 | -h |  | Display help. |
 
 MQTTLoader starts to terminate when all of the following conditions are met.  

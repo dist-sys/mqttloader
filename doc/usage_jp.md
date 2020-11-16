@@ -1,4 +1,4 @@
-# MQTTLoader 利用方法 (v0.7.2)
+# MQTTLoader 利用方法 (v0.7.3)
 MQTTLoaderは、MQTT v5.0とv3.1.1に対応した負荷テストツール（クライアントツール）です。
 
 ## 1. 環境要件
@@ -28,11 +28,11 @@ Windowsユーザはmqttloader.bat（バッチファイル）を、Linux等のユ
 `$ ./mqttloader -h`
 
 ```
-MQTTLoader version 0.7.0
+MQTTLoader version 0.7.3
 usage: mqttloader.Loader -b <arg> [-v <arg>] [-p <arg>] [-s <arg>] [-pq
        <arg>] [-sq <arg>] [-ss] [-r] [-t <arg>] [-d <arg>] [-m <arg>] [-ru
        <arg>] [-rd <arg>] [-i <arg>] [-st <arg>] [-et <arg>] [-l <arg>]
-       [-n <arg>] [-im] [-h]
+       [-n <arg>] [-im] [-un <arg>] [-pw <arg>] [-h]
  -b,--broker <arg>        Broker URL. E.g., tcp://127.0.0.1:1883
  -v,--version <arg>       MQTT version ("3" for 3.1.1 or "5" for 5.0).
   :
@@ -99,6 +99,8 @@ publisherとsubscriberを別マシンで動かすことで、負荷が相互に�
 | -l \<arg\> | INFO | ログレベル。<br>設定可能な値：`SEVERE`/`WARNING`/`INFO`/`ALL` |
 | -n \<arg\> | （無し） | NTPサーバのURL。設定すると時刻同期が有効になる（デフォルト：無効）。<br>例：`ntp.nict.jp`　 |
 | -im \<arg\> | （無し） | MQTTLoaderをメモリ上でのみ動作させる。デフォルトでは、測定レコードはファイルに書き出される。 |
+| -un \<arg\> | （無し） | ユーザ名（ブローカにてパスワード認証が設定されている場合に指定）。 |
+| -pw \<arg\> | （無し） | パスワード（ブローカにてパスワード認証が設定されている場合に指定）。 |
 | -h |  | ヘルプを表示 |
 
 MQTTLoaderは、以下の条件をすべて満たすと、クライアントを切断させ終了します。  
