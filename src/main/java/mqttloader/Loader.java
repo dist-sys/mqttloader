@@ -24,9 +24,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -140,6 +137,12 @@ public class Loader {
             LOGGER.warning("\"-d\" parameter value must be equal to or larger than 8.");
             exit(1);
         }
+        if(Util.hasOpt(Opt.TLS)) {
+            if(!new File(Util.getAppHomeDir(), Constants.TLS_TRUSTSTORE_FILENAME).exists()){
+                LOGGER.warning("To use \"-tl\" parameter, JKS file must be placed appropriately.");
+                exit(1);
+            }
+        }
     }
 
     /**
@@ -148,7 +151,7 @@ public class Loader {
     private void initFields() {
         // If there is one or more subscriber(s), need to wait for subscribers' timeout in addition with publishers' completion.
         cdl = Util.getOptValInt(Opt.NUM_SUB) > 0 ? new CountDownLatch(Util.getOptValInt(Opt.NUM_PUB)+1) : new CountDownLatch(Util.getOptValInt(Opt.NUM_PUB));
-        recorder = new Recorder(getFile(), Util.hasOpt(Opt.IN_MEMORY));
+        recorder = new Recorder(getRecFile(), Util.hasOpt(Opt.IN_MEMORY));
     }
 
     /**
@@ -156,12 +159,34 @@ public class Loader {
      */
     private void prepareClients() {
         String broker = Util.getOptVal(Opt.BROKER);
-        if(!broker.startsWith("tcp://") && !broker.startsWith("ssl://")) {
-            broker = "tcp://"+broker;
+        if(!broker.startsWith(Constants.BROKER_URL_PREFIX_TCP) && !broker.startsWith(Constants.BROKER_URL_PREFIX_TLS)) {
+            if(!Util.hasOpt(Opt.TLS)) {
+                broker = Constants.BROKER_URL_PREFIX_TCP+broker;
+            } else {
+                broker = Constants.BROKER_URL_PREFIX_TLS +broker;
+            }
+        }
+        if(!broker.endsWith(Constants.BROKER_URL_PORT_TCP) && !broker.endsWith(Constants.BROKER_URL_PORT_TLS)) {
+            if(!Util.hasOpt(Opt.TLS)) {
+                broker = broker + Constants.BROKER_URL_PORT_TCP;
+            } else {
+                broker = broker + Constants.BROKER_URL_PORT_TLS;
+            }
         }
         int version = Util.getOptValInt(Opt.MQTT_VERSION);
         String userName = Util.getOptVal(Opt.USERNAME);
         String password = Util.getOptVal(Opt.PASSWORD);
+        String trustStore = null;
+        String keyStore = null;
+        if(Util.hasOpt(Opt.TLS)) {
+            File trustStoreFile = new File(Util.getAppHomeDir(), Constants.TLS_TRUSTSTORE_FILENAME);
+            trustStore = trustStoreFile.getPath();
+            File keyStoreFile = new File(Util.getAppHomeDir(), Constants.TLS_KEYSTORE_FILENAME);
+            if(keyStoreFile.exists()) {
+                keyStore = keyStoreFile.getPath();
+            }
+        }
+
         int numPub = Util.getOptValInt(Opt.NUM_PUB);
         int numSub = Util.getOptValInt(Opt.NUM_SUB);
         int pubQos = Util.getOptValInt(Opt.PUB_QOS);
@@ -174,17 +199,17 @@ public class Loader {
         int pubInterval = Util.getOptValInt(Opt.INTERVAL);
         for(int i=0;i<numPub;i++){
             if(version==5){
-                publishers.add(new PublisherV5(i, broker, userName, password, pubQos, retain, topic, payloadSize, numMessage, pubInterval, recorder));
+                publishers.add(new PublisherV5(i, broker, userName, password, trustStore, keyStore, pubQos, retain, topic, payloadSize, numMessage, pubInterval, recorder));
             }else{
-                publishers.add(new PublisherV3(i, broker, userName, password, pubQos, retain, topic, payloadSize, numMessage, pubInterval, recorder));
+                publishers.add(new PublisherV3(i, broker, userName, password, trustStore, keyStore, pubQos, retain, topic, payloadSize, numMessage, pubInterval, recorder));
             }
         }
 
         for(int i=0;i<numSub;i++){
             if(version==5){
-                subscribers.add(new SubscriberV5(i, broker, userName, password, subQos, shSub, topic, recorder));
+                subscribers.add(new SubscriberV5(i, broker, userName, password, trustStore, keyStore, subQos, shSub, topic, recorder));
             }else{
-                subscribers.add(new SubscriberV3(i, broker, userName, password, subQos, topic, recorder));
+                subscribers.add(new SubscriberV3(i, broker, userName, password, trustStore, keyStore, subQos, topic, recorder));
             }
         }
     }
@@ -193,20 +218,10 @@ public class Loader {
      * Obtain a File object to be used to store sending/receiving records by Recorder instance.
      * @return File instance. NULL if the parameter "-im" is specified.
      */
-    private File getFile() {
+    private File getRecFile() {
         File file = null;
         if (!Util.hasOpt(Opt.IN_MEMORY)) {
-            try {
-                URL url = Loader.class.getProtectionDomain().getCodeSource().getLocation();
-                file = new File(new URL(url.toString()).toURI());
-                if(file.getParentFile().getName().equals("lib")){
-                    file = file.getParentFile().getParentFile();
-                } else {
-                    file = new File("").getAbsoluteFile();
-                }
-            } catch (SecurityException | NullPointerException | URISyntaxException | MalformedURLException e) {
-                file = new File("").getAbsoluteFile();
-            }
+            file = Util.getAppHomeDir();
 //            String date = Constants.DATE_FORMAT_FOR_FILENAME.format(new Date(System.currentTimeMillis() + offset));
             String date = Constants.DATE_FORMAT_FOR_FILENAME.format(new Date(System.currentTimeMillis()));
             file = new File(file, Constants.FILE_NAME_PREFIX+date+".csv");

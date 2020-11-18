@@ -17,6 +17,7 @@
 package mqttloader.client;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Properties;
 
 import mqttloader.Loader;
 import mqttloader.Recorder;
@@ -31,7 +32,7 @@ public class PublisherV3 extends AbstractPublisher {
     private MqttClient client;
     private MqttMessage message = new MqttMessage();
 
-    public PublisherV3(int clientNumber, String broker, String userName, String password, int qos, boolean retain, String topic, int payloadSize, int numMessage, int pubInterval, Recorder recorder) {
+    public PublisherV3(int clientNumber, String broker, String userName, String password, String trustStore, String keyStore, int qos, boolean retain, String topic, int payloadSize, int numMessage, int pubInterval, Recorder recorder) {
         super(clientNumber, topic, payloadSize, numMessage, pubInterval, recorder);
         message.setQos(qos);
         message.setRetained(retain);
@@ -41,6 +42,14 @@ public class PublisherV3 extends AbstractPublisher {
         options.setCleanSession(true);
         if(userName != null) options.setUserName(userName);
         if(password != null) options.setPassword(password.toCharArray());
+        if(trustStore != null) {
+            Properties prop = new Properties();
+            prop.setProperty("com.ibm.ssl.trustStore", trustStore);
+            if(keyStore != null) {
+                prop.setProperty("com.ibm.ssl.keyStore", keyStore);
+            }
+            options.setSSLProperties(prop);
+        }
         try {
             client = new MqttClient(broker, clientId, new MemoryPersistence());
             client.connect(options);

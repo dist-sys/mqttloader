@@ -20,6 +20,10 @@ import java.text.SimpleDateFormat;
 
 public class Constants {
     public static final String VERSION = "0.7.3";
+    public static final String BROKER_URL_PREFIX_TCP = "tcp://";
+    public static final String BROKER_URL_PREFIX_TLS = "ssl://";
+    public static final String BROKER_URL_PORT_TCP = ":1883";
+    public static final String BROKER_URL_PORT_TLS = ":8883";
     public static final String FILE_NAME_PREFIX = "mqttloader_";
     private static final String HOST_ID = Util.genRandomChars(4);
     public static final String SUB_CLIENT_ID_PREFIX = "ml-"+HOST_ID+"-s-";
@@ -30,6 +34,8 @@ public class Constants {
     public static final int SECOND_IN_MILLI = 1000;
     public static final SimpleDateFormat DATE_FORMAT_FOR_LOG = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z");
     public static final SimpleDateFormat DATE_FORMAT_FOR_FILENAME = new SimpleDateFormat("yyyyMMdd-HHmmss");
+    public static final String TLS_TRUSTSTORE_FILENAME = "truststore.jks";
+    public static final String TLS_KEYSTORE_FILENAME = "keystore.jks";
 
     public enum Opt {
         BROKER("b", "broker", true, "Broker URL. E.g., tcp://127.0.0.1:1883", null, true),
@@ -53,6 +59,7 @@ public class Constants {
         IN_MEMORY("im", "inmemory", false, "Enable in-memory mode", null),
         USERNAME("un", "username", true, "User name for authentication", null),
         PASSWORD("pw", "password", true, "Password for authentication", null),
+        TLS("tl", "tls", false, "Enable TLS", null),
         HELP("h", "help", false, "Display help.", null);
 
         private String name;

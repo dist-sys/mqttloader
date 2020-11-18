@@ -17,6 +17,7 @@
 package mqttloader.client;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Properties;
 
 import mqttloader.Loader;
 import mqttloader.Recorder;
@@ -33,12 +34,20 @@ import org.eclipse.paho.mqttv5.common.packet.MqttProperties;
 public class SubscriberV5 extends AbstractSubscriber implements MqttCallback {
     private MqttClient client;
 
-    public SubscriberV5(int clientNumber, String broker, String userName, String password, int qos, boolean shSub, String topic, Recorder recorder) {
+    public SubscriberV5(int clientNumber, String broker, String userName, String password, String trustStore, String keyStore, int qos, boolean shSub, String topic, Recorder recorder) {
         super(clientNumber, recorder);
         MqttConnectionOptions options = new MqttConnectionOptions();
         options.setCleanStart(true);
         if(userName != null) options.setUserName(userName);
         if(password != null) options.setPassword(password.getBytes(StandardCharsets.UTF_8));
+        if(trustStore != null) {
+            Properties prop = new Properties();
+            prop.setProperty("com.ibm.ssl.trustStore", trustStore);
+            if(keyStore != null) {
+                prop.setProperty("com.ibm.ssl.keyStore", keyStore);
+            }
+            options.setSSLProperties(prop);
+        }
         try {
             client = new MqttClient(broker, clientId, new MemoryPersistence());
             client.setCallback(this);

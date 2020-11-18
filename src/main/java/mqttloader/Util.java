@@ -16,9 +16,13 @@
 
 package mqttloader;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
 import java.net.SocketException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
@@ -51,6 +55,23 @@ public class Util {
         HelpFormatter help = new HelpFormatter();
         help.setOptionComparator(null);
         help.printHelp(Loader.class.getName(), options, true);
+    }
+
+    public static File getAppHomeDir() {
+        File file;
+        try {
+            URL url = Loader.class.getProtectionDomain().getCodeSource().getLocation();
+            file = new File(new URL(url.toString()).toURI());
+            if(file.getParentFile().getName().equals("lib")){
+                file = file.getParentFile().getParentFile();
+            } else {
+                file = new File("").getAbsoluteFile();
+            }
+        } catch (SecurityException | NullPointerException | URISyntaxException | MalformedURLException e) {
+            file = new File("").getAbsoluteFile();
+        }
+
+        return file;
     }
 
     public static long getOffsetFromNtpServer() {

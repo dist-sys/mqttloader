@@ -16,6 +16,8 @@
 
 package mqttloader.client;
 
+import java.util.Properties;
+
 import mqttloader.Loader;
 import mqttloader.Recorder;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
@@ -30,13 +32,21 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 public class SubscriberV3 extends AbstractSubscriber implements MqttCallback {
     private MqttClient client;
 
-    public SubscriberV3(int clientNumber, String broker, String userName, String password, int qos, String topic, Recorder recorder) {
+    public SubscriberV3(int clientNumber, String broker, String userName, String password, String trustStore, String keyStore, int qos, String topic, Recorder recorder) {
         super(clientNumber, recorder);
         MqttConnectOptions options = new MqttConnectOptions();
         options.setMqttVersion(4);
         options.setCleanSession(true);
         if(userName != null) options.setUserName(userName);
         if(password != null) options.setPassword(password.toCharArray());
+        if(trustStore != null) {
+            Properties prop = new Properties();
+            prop.setProperty("com.ibm.ssl.trustStore", trustStore);
+            if(keyStore != null) {
+                prop.setProperty("com.ibm.ssl.keyStore", keyStore);
+            }
+            options.setSSLProperties(prop);
+        }
         try {
             client = new MqttClient(broker, clientId, new MemoryPersistence());
             client.setCallback(this);
