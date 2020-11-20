@@ -27,6 +27,7 @@ compileJava {
 
 run {
     args '-h'.split('\\s+')
+//    args '-b ssl://test.mosquitto.org:8884 -p 1 -s 1 -m 10 -tl'.split('\\s+')
 }
 
 CreateStartScripts startScripts = project.startScripts

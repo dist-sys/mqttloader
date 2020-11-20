@@ -43,8 +43,11 @@ public class SubscriberV5 extends AbstractSubscriber implements MqttCallback {
         if(trustStore != null) {
             Properties prop = new Properties();
             prop.setProperty("com.ibm.ssl.trustStore", trustStore);
+            prop.setProperty("com.ibm.ssl.trustStorePassword", "testtest");
             if(keyStore != null) {
                 prop.setProperty("com.ibm.ssl.keyStore", keyStore);
+                prop.setProperty("com.ibm.ssl.clientAuthentication", "true");
+                prop.setProperty("com.ibm.ssl.keyStorePassword", "testtest");
             }
             options.setSSLProperties(prop);
         }
