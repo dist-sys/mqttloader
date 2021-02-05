@@ -32,7 +32,7 @@ public class PublisherV5 extends AbstractPublisher {
     private MqttClient client;
     private MqttMessage message = new MqttMessage();
 
-    public PublisherV5(int clientNumber, String broker, String userName, String password, String trustStore, String keyStore, int qos, boolean retain, String topic, int payloadSize, int numMessage, int pubInterval, Recorder recorder) {
+    public PublisherV5(int clientNumber, String broker, String userName, String password, Properties sslProps, int qos, boolean retain, String topic, int payloadSize, int numMessage, int pubInterval, Recorder recorder) {
         super(clientNumber, topic, payloadSize, numMessage, pubInterval, recorder);
         message.setQos(qos);
         message.setRetained(retain);
@@ -41,16 +41,8 @@ public class PublisherV5 extends AbstractPublisher {
         options.setCleanStart(true);
         if(userName != null) options.setUserName(userName);
         if(password != null) options.setPassword(password.getBytes(StandardCharsets.UTF_8));
-        if(trustStore != null) {
-            Properties prop = new Properties();
-            prop.setProperty("com.ibm.ssl.trustStore", trustStore);
-            prop.setProperty("com.ibm.ssl.trustStorePassword", "testpass");
-            if(keyStore != null) {
-                prop.setProperty("com.ibm.ssl.keyStore", keyStore);
-                prop.setProperty("com.ibm.ssl.clientAuthentication", "true");
-                prop.setProperty("com.ibm.ssl.keyStorePassword", "testpass");
-            }
-            options.setSSLProperties(prop);
+        if(sslProps != null) {
+            options.setSSLProperties(sslProps);
         }
         try {
             client = new MqttClient(broker, clientId, new MemoryPersistence());

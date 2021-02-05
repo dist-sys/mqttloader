@@ -32,23 +32,15 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 public class SubscriberV3 extends AbstractSubscriber implements MqttCallback {
     private MqttClient client;
 
-    public SubscriberV3(int clientNumber, String broker, String userName, String password, String trustStore, String keyStore, int qos, String topic, Recorder recorder) {
+    public SubscriberV3(int clientNumber, String broker, String userName, String password, Properties sslProps, int qos, String topic, Recorder recorder) {
         super(clientNumber, recorder);
         MqttConnectOptions options = new MqttConnectOptions();
         options.setMqttVersion(4);
         options.setCleanSession(true);
         if(userName != null) options.setUserName(userName);
         if(password != null) options.setPassword(password.toCharArray());
-        if(trustStore != null) {
-            Properties prop = new Properties();
-            prop.setProperty("com.ibm.ssl.trustStore", trustStore);
-            prop.setProperty("com.ibm.ssl.trustStorePassword", "testpass");
-            if(keyStore != null) {
-                prop.setProperty("com.ibm.ssl.keyStore", keyStore);
-                prop.setProperty("com.ibm.ssl.clientAuthentication", "true");
-                prop.setProperty("com.ibm.ssl.keyStorePassword", "testpass");
-            }
-            options.setSSLProperties(prop);
+        if(sslProps != null) {
+            options.setSSLProperties(sslProps);
         }
         try {
             client = new MqttClient(broker, clientId, new MemoryPersistence());

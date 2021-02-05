@@ -34,22 +34,14 @@ import org.eclipse.paho.mqttv5.common.packet.MqttProperties;
 public class SubscriberV5 extends AbstractSubscriber implements MqttCallback {
     private MqttClient client;
 
-    public SubscriberV5(int clientNumber, String broker, String userName, String password, String trustStore, String keyStore, int qos, boolean shSub, String topic, Recorder recorder) {
+    public SubscriberV5(int clientNumber, String broker, String userName, String password, Properties sslProps, int qos, boolean shSub, String topic, Recorder recorder) {
         super(clientNumber, recorder);
         MqttConnectionOptions options = new MqttConnectionOptions();
         options.setCleanStart(true);
         if(userName != null) options.setUserName(userName);
         if(password != null) options.setPassword(password.getBytes(StandardCharsets.UTF_8));
-        if(trustStore != null) {
-            Properties prop = new Properties();
-            prop.setProperty("com.ibm.ssl.trustStore", trustStore);
-            prop.setProperty("com.ibm.ssl.trustStorePassword", "testpass");
-            if(keyStore != null) {
-                prop.setProperty("com.ibm.ssl.keyStore", keyStore);
-                prop.setProperty("com.ibm.ssl.clientAuthentication", "true");
-                prop.setProperty("com.ibm.ssl.keyStorePassword", "testpass");
-            }
-            options.setSSLProperties(prop);
+        if(sslProps != null) {
+            options.setSSLProperties(sslProps);
         }
         try {
             client = new MqttClient(broker, clientId, new MemoryPersistence());

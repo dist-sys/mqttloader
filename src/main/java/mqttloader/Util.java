@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.Random;
 import java.util.TreeMap;
 
+import mqttloader.Constants.Prop;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.net.ntp.NTPUDPClient;
@@ -38,16 +39,28 @@ public class Util {
     private static final String chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
     private static Random random = new Random();
 
-    public static String getOptVal(Constants.Opt opt) {
-        return Loader.cmd.getOptionValue(opt.getName(), opt.getDefaultValue());
+    public static String getPropValue(Prop prop) {
+        return Loader.PROPS.getProperty(prop.getName());
     }
 
-    public static int getOptValInt(Constants.Opt opt) {
-        return Integer.valueOf(Loader.cmd.getOptionValue(opt.getName(), opt.getDefaultValue()));
+    public static int getPropValueInt(Prop prop) {
+        return Integer.valueOf(Loader.PROPS.getProperty(prop.getName()));
     }
 
-    public static boolean hasOpt(Constants.Opt opt) {
-        return Loader.cmd.hasOption(opt.getName());
+    public static boolean getPropValueBool(Prop prop) {
+        if (Loader.PROPS.getProperty(prop.getName()).equals("true")) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public static boolean hasPropValue(Prop prop) {
+        if (Loader.PROPS.getProperty(prop.getName()) != null) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public static void printHelp(Options options) {
@@ -74,8 +87,21 @@ public class Util {
         return file;
     }
 
+    public static File getDistDir() {
+        for(File f1: new File("").getAbsoluteFile().listFiles()) {
+            if(f1.getName().equals("src")) {
+                for(File f2: f1.listFiles()) {
+                    if(f2.getName().equals("dist")) {
+                        return f2.getAbsoluteFile();
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     public static long getOffsetFromNtpServer() {
-        String ntpServer = getOptVal(Constants.Opt.NTP);
+        String ntpServer = getPropValue(Prop.NTP);
         long offset = 0;
         if(ntpServer != null) {
             Loader.LOGGER.info("Getting time information from NTP server.");
