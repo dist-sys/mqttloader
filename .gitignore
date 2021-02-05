@@ -4,3 +4,6 @@
 # Gradle related files
 .gradle/
 build/
+
+# TLS-related files
+*.jks
