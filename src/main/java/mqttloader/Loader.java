@@ -51,7 +51,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
 public class Loader {
-    private String confFileName = null;
+    private File confFile = null;
     public static Properties PROPS;
     private final List<AbstractClient> publishers = new ArrayList<>();
     private final List<AbstractClient> subscribers = new ArrayList<>();
@@ -73,6 +73,7 @@ public class Loader {
 
         LOGGER.setLevel(Level.parse(Util.getPropValue(Prop.LOG_LEVEL)));
         LOGGER.info("MQTTLoader version " + Constants.VERSION + " starting.");
+        LOGGER.info("Configuration file: " + confFile.getAbsolutePath());
 
         initFields();
 
@@ -134,23 +135,26 @@ public class Loader {
             exit(1);
         }
 
-        confFileName = cmd.getOptionValue(Opt.CONFIG.getName(), Opt.CONFIG.getDefaultValue());
+        if (cmd.hasOption(Opt.CONFIG.getName())){
+            confFile = new File(cmd.getOptionValue(Opt.CONFIG.getName()));
+        } else {
+            File dir = Util.getDistDir();
+            if (dir==null) {
+                dir = Util.getAppHomeDir();
+            }
+            confFile = new File(dir, Opt.CONFIG.getDefaultValue());
+        }
+
+        if (!confFile.exists()) {
+            LOGGER.severe("Unable to find config file.");
+            exit(1);
+        }
     }
 
     /**
      * Load parameters from configuration file.
      */
     private void loadConfigurationFile() {
-        File dir = Util.getDistDir();
-        if (dir==null) {
-            dir = Util.getAppHomeDir();
-        }
-        File confFile = new File(dir, confFileName);
-        if (!confFile.exists()) {
-            LOGGER.severe("Unable to find config file.");
-            exit(1);
-        }
-
         try {
             PROPS.load(new FileInputStream(confFile));
         } catch (FileNotFoundException e) {
@@ -163,90 +167,92 @@ public class Loader {
         }
 
         // Validate arguments.
-        Prop prop = Prop.SH_SUB;
+        Prop prop = Prop.SHARED_SUB;
         String flag = Util.getPropValue(prop);
         if (!flag.equals("true") && !flag.equals("false")) {
-            LOGGER.severe("\"" + prop.getName() + "\" in " + confFileName + " must be \"true\" or \"false\".");
+            LOGGER.severe("\"" + prop.getName() + "\" in configuration file must be \"true\" or \"false\".");
             exit(1);
         }
 
         prop = Prop.RETAIN;
         flag = Util.getPropValue(prop);
         if (!flag.equals("true") && !flag.equals("false")) {
-            LOGGER.severe("\"" + prop.getName() + "\" in " + confFileName + " must be \"true\" or \"false\".");
+            LOGGER.severe("\"" + prop.getName() + "\" in configuration file must be \"true\" or \"false\".");
             exit(1);
         }
 
-        prop = Prop.IN_MEMORY;
-        flag = Util.getPropValue(prop);
-        if (!flag.equals("true") && !flag.equals("false")) {
-            LOGGER.severe("\"" + prop.getName() + "\" in " + confFileName + " must be \"true\" or \"false\".");
-            exit(1);
+        prop = Prop.OUTPUT;
+        if (Util.hasPropValue(prop)) {
+            File dir = new File(Util.getPropValue(prop));
+            if (dir.isFile()) {
+                LOGGER.severe("\"" + prop.getName() + "\" in configuration file must be a directory.");
+                exit(1);
+            }
         }
 
         prop = Prop.MQTT_VERSION;
         int version = Util.getPropValueInt(prop);
         if(version != 3 && version != 5) {
-            LOGGER.severe("\"" + prop.getName() + "\" in " + confFileName + " must be 3 or 5.");
+            LOGGER.severe("\"" + prop.getName() + "\" in configuration file must be 3 or 5.");
             exit(1);
         }
 
-        prop = Prop.PUB_QOS;
+        prop = Prop.QOS_PUB;
         int pubqos = Util.getPropValueInt(prop);
         if(pubqos != 0 && pubqos != 1 && pubqos != 2) {
-            LOGGER.severe("\"" + prop.getName() + "\" in " + confFileName + " must be 0 or 1 or 2.");
+            LOGGER.severe("\"" + prop.getName() + "\" in configuration file must be 0 or 1 or 2.");
             exit(1);
         }
 
-        prop = Prop.SUB_QOS;
+        prop = Prop.QOS_SUB;
         int subqos = Util.getPropValueInt(prop);
         if(subqos != 0 && subqos != 1 && subqos != 2) {
-            LOGGER.severe("\"" + prop.getName() + "\" in " + confFileName + " must be 0 or 1 or 2.");
+            LOGGER.severe("\"" + prop.getName() + "\" in configuration file must be 0 or 1 or 2.");
             exit(1);
         }
 
         prop = Prop.PAYLOAD;
         if(Util.getPropValueInt(prop) < 8) {
-            LOGGER.severe("\"" + prop.getName() + "\" in " + confFileName +  " must be equal to or larger than 8.");
+            LOGGER.severe("\"" + prop.getName() + "\" in configuration file must be equal to or larger than 8.");
             exit(1);
         }
 
         prop = Prop.TLS_TRUSTSTORE;
-        if (Util.getPropValue(prop) != null) {
-            if (Util.getPropValue(Prop.TLS_TRUSTSTORE_PASS) == null) {
-                LOGGER.severe("\"" + Prop.TLS_TRUSTSTORE_PASS.getName() + "\" in " + confFileName +  " is mandatory if \"" + prop.getName() + "\" is specified.");
+        if (Util.hasPropValue(prop)) {
+            if (!Util.hasPropValue(Prop.TLS_TRUSTSTORE_PASS)) {
+                LOGGER.severe("\"" + Prop.TLS_TRUSTSTORE_PASS.getName() + "\" in configuration file is mandatory if \"" + prop.getName() + "\" is specified.");
                 exit(1);
             }
-            if(!new File(Util.getAppHomeDir(), Util.getPropValue(prop)).exists()){
+            if(!new File(Util.getPropValue(prop)).exists()){
                 LOGGER.severe("TLS truststore file specified by \"" + prop.getName() + "\" does not exist.");
                 exit(1);
             }
         }
 
         prop = Prop.TLS_TRUSTSTORE_PASS;
-        if (Util.getPropValue(prop) != null) {
-            if (Util.getPropValue(Prop.TLS_TRUSTSTORE) == null) {
-                LOGGER.severe("\"" + Prop.TLS_TRUSTSTORE.getName() + "\" in " + confFileName +  " is mandatory if \"" + Prop.TLS_TRUSTSTORE_PASS.getName() + "\" is specified.");
+        if (Util.hasPropValue(prop)) {
+            if (!Util.hasPropValue(Prop.TLS_TRUSTSTORE)) {
+                LOGGER.severe("\"" + Prop.TLS_TRUSTSTORE.getName() + "\" in configuration file is mandatory if \"" + Prop.TLS_TRUSTSTORE_PASS.getName() + "\" is specified.");
                 exit(1);
             }
         }
 
         prop = Prop.TLS_KEYSTORE;
-        if (Util.getPropValue(prop) != null) {
-            if (Util.getPropValue(Prop.TLS_TRUSTSTORE) == null || Util.getPropValue(Prop.TLS_TRUSTSTORE_PASS) == null || Util.getPropValue(Prop.TLS_KEYSTORE_PASS) == null) {
-                LOGGER.severe("\"" + Prop.TLS_TRUSTSTORE.getName() + "\", \"" + Prop.TLS_TRUSTSTORE_PASS.getName() + "\", and \"" + Prop.TLS_KEYSTORE_PASS.getName() + "\" in " + confFileName +  " is mandatory if \"" + prop.getName() + "\" is specified.");
+        if (Util.hasPropValue(prop)) {
+            if (!Util.hasPropValue(Prop.TLS_TRUSTSTORE) || !Util.hasPropValue(Prop.TLS_TRUSTSTORE_PASS) || !Util.hasPropValue(Prop.TLS_KEYSTORE_PASS)) {
+                LOGGER.severe("\"" + Prop.TLS_TRUSTSTORE.getName() + "\", \"" + Prop.TLS_TRUSTSTORE_PASS.getName() + "\", and \"" + Prop.TLS_KEYSTORE_PASS.getName() + "\" in configuration file is mandatory if \"" + prop.getName() + "\" is specified.");
                 exit(1);
             }
-            if(!new File(Util.getAppHomeDir(), Util.getPropValue(prop)).exists()){
+            if(!new File(Util.getPropValue(prop)).exists()){
                 LOGGER.severe("TLS keystore file specified by \"" + prop.getName() + "\" does not exist.");
                 exit(1);
             }
         }
 
         prop = Prop.TLS_KEYSTORE_PASS;
-        if (Util.getPropValue(prop) != null) {
-            if (Util.getPropValue(Prop.TLS_TRUSTSTORE) == null || Util.getPropValue(Prop.TLS_TRUSTSTORE_PASS) == null || Util.getPropValue(Prop.TLS_KEYSTORE) == null) {
-                LOGGER.severe("\"" + Prop.TLS_TRUSTSTORE.getName() + "\", \"" + Prop.TLS_TRUSTSTORE_PASS.getName() + "\", and \"" + Prop.TLS_KEYSTORE.getName() + "\" in " + confFileName +  " is mandatory if \"" + prop.getName() + "\" is specified.");
+        if (Util.hasPropValue(prop)) {
+            if (!Util.hasPropValue(Prop.TLS_TRUSTSTORE) || !Util.hasPropValue(Prop.TLS_TRUSTSTORE_PASS) || !Util.hasPropValue(Prop.TLS_KEYSTORE)) {
+                LOGGER.severe("\"" + Prop.TLS_TRUSTSTORE.getName() + "\", \"" + Prop.TLS_TRUSTSTORE_PASS.getName() + "\", and \"" + Prop.TLS_KEYSTORE.getName() + "\" in configuration file is mandatory if \"" + prop.getName() + "\" is specified.");
                 exit(1);
             }
         }
@@ -258,7 +264,7 @@ public class Loader {
     private void initFields() {
         // If there is one or more subscriber(s), need to wait for subscribers' timeout in addition with publishers' completion.
         cdl = Util.getPropValueInt(Prop.NUM_SUB) > 0 ? new CountDownLatch(Util.getPropValueInt(Prop.NUM_PUB)+1) : new CountDownLatch(Util.getPropValueInt(Prop.NUM_PUB));
-        recorder = new Recorder(getRecFile(), Util.getPropValueBool(Prop.IN_MEMORY));
+        recorder = new Recorder(getRecFile(), !Util.hasPropValue(Prop.OUTPUT));
     }
 
     /**
@@ -283,6 +289,7 @@ public class Loader {
         } else {
             broker = broker + ":" + Util.getPropValue(Prop.BROKER_PORT);
         }
+        LOGGER.info("Broker: " + broker);
 
         int version = Util.getPropValueInt(Prop.MQTT_VERSION);
         String userName = Util.getPropValue(Prop.USERNAME);
@@ -291,20 +298,24 @@ public class Loader {
         Properties sslProps = null;
         if(Util.hasPropValue(Prop.TLS_TRUSTSTORE)) {
             sslProps = new Properties();
-            sslProps.setProperty("com.ibm.ssl.trustStore", new File(Util.getAppHomeDir(), Util.getPropValue(Prop.TLS_TRUSTSTORE)).getPath());
+            File trustStore = new File(Util.getPropValue(Prop.TLS_TRUSTSTORE));
+            sslProps.setProperty("com.ibm.ssl.trustStore", trustStore.getPath());
             sslProps.setProperty("com.ibm.ssl.trustStorePassword", Util.getPropValue(Prop.TLS_TRUSTSTORE_PASS));
+            LOGGER.info("Truststore file: "+trustStore.getAbsolutePath());
             if(Util.hasPropValue(Prop.TLS_KEYSTORE)) {
-                sslProps.setProperty("com.ibm.ssl.keyStore", new File(Util.getAppHomeDir(), Util.getPropValue(Prop.TLS_KEYSTORE)).getPath());
+                File keystore = new File(Util.getPropValue(Prop.TLS_KEYSTORE));
+                sslProps.setProperty("com.ibm.ssl.keyStore", keystore.getPath());
                 sslProps.setProperty("com.ibm.ssl.clientAuthentication", "true");
                 sslProps.setProperty("com.ibm.ssl.keyStorePassword", Util.getPropValue(Prop.TLS_KEYSTORE_PASS));
+                LOGGER.info("Keystore file: "+keystore.getAbsolutePath());
             }
         }
 
         int numPub = Util.getPropValueInt(Prop.NUM_PUB);
         int numSub = Util.getPropValueInt(Prop.NUM_SUB);
-        int pubQos = Util.getPropValueInt(Prop.PUB_QOS);
-        int subQos = Util.getPropValueInt(Prop.SUB_QOS);
-        boolean shSub = Util.getPropValueBool(Prop.SH_SUB);
+        int pubQos = Util.getPropValueInt(Prop.QOS_PUB);
+        int subQos = Util.getPropValueInt(Prop.QOS_SUB);
+        boolean shSub = Util.getPropValueBool(Prop.SHARED_SUB);
         boolean retain = Util.getPropValueBool(Prop.RETAIN);
         String topic = Util.getPropValue(Prop.TOPIC);
         int payloadSize = Util.getPropValueInt(Prop.PAYLOAD);
@@ -333,11 +344,14 @@ public class Loader {
      */
     private File getRecFile() {
         File file = null;
-        if (!Util.getPropValueBool(Prop.IN_MEMORY)) {
-            file = Util.getAppHomeDir();
+        if (Util.hasPropValue(Prop.OUTPUT)) {
+            File dir = new File(Util.getPropValue(Prop.OUTPUT));
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
 //            String date = Constants.DATE_FORMAT_FOR_FILENAME.format(new Date(System.currentTimeMillis() + offset));
             String date = Constants.DATE_FORMAT_FOR_FILENAME.format(new Date(System.currentTimeMillis()));
-            file = new File(file, Constants.FILE_NAME_PREFIX+date+".csv");
+            file = new File(dir, Constants.FILE_NAME_PREFIX+date+".csv");
 
             if(file.exists()) {
                 file.delete();
@@ -423,7 +437,7 @@ public class Loader {
      * Calculate the measurement result.
      */
     private void calcResult() {
-        if(!Util.getPropValueBool(Prop.IN_MEMORY)) {
+        if(Util.hasPropValue(Prop.OUTPUT)) {
             FileInputStream fis = null;
             InputStreamReader isr = null;
             BufferedReader br = null;

@@ -19,7 +19,7 @@ package mqttloader;
 import java.text.SimpleDateFormat;
 
 public class Constants {
-    public static final String VERSION = "0.7.3";
+    public static final String VERSION = "0.8.0";
     public static final String BROKER_PREFIX_TCP = "tcp://";
     public static final String BROKER_PREFIX_TLS = "ssl://";
     public static final String BROKER_PORT_TCP = "1883";
@@ -34,10 +34,9 @@ public class Constants {
     public static final int SECOND_IN_MILLI = 1000;
     public static final SimpleDateFormat DATE_FORMAT_FOR_LOG = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z");
     public static final SimpleDateFormat DATE_FORMAT_FOR_FILENAME = new SimpleDateFormat("yyyyMMdd-HHmmss");
-    public static final String DEFAULT_CONFIG_FILENAME = "mqttloader.conf";
 
     public enum Opt {
-        CONFIG("c", true, "Configuration file name.", DEFAULT_CONFIG_FILENAME),
+        CONFIG("c", true, "Configuration file name.", "mqttloader.conf"),
         HELP("h", false, "Display help.");
 
         private String name;
@@ -89,9 +88,9 @@ public class Constants {
         MQTT_VERSION("mqtt_version", "5"),
         NUM_PUB("num_publishers", "1"),
         NUM_SUB("num_subscribers", "1"),
-        PUB_QOS("qos_publisher", "0"),
-        SUB_QOS("qos_subscriber", "0"),
-        SH_SUB("shared_subscription", "false"),
+        QOS_PUB("qos_publisher", "0"),
+        QOS_SUB("qos_subscriber", "0"),
+        SHARED_SUB("shared_subscription", "false"),
         RETAIN("retain", "false"),
         TOPIC("topic", "mqttloader-test-topic"),
         PAYLOAD("payload", "20"),
@@ -103,7 +102,7 @@ public class Constants {
         EXEC_TIME("exec_time", "60"),
         LOG_LEVEL("log_level", "INFO"),
         NTP("ntp"),
-        IN_MEMORY("in_memory", "true"),
+        OUTPUT("output"),
         USERNAME("user_name"),
         PASSWORD("password"),
         TLS_TRUSTSTORE("tls_truststore"),
