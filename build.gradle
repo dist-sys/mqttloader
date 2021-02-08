@@ -8,7 +8,7 @@ wrapper {
 }
 
 mainClassName = 'mqttloader.Loader'
-applicationDefaultJvmArgs = ['-Djava.util.logging.config.file=src/dist/logging.properties', '-Dfile.encoding=UTF-8', '--illegal-access=deny']
+applicationDefaultJvmArgs = ['-Djava.util.logging.config.file=src/dist/logging.properties', '-Dfile.encoding=UTF-8', '--illegal-access=deny', '--add-opens=java.base/java.net=ALL-UNNAMED']
 
 repositories {
     mavenCentral()
@@ -26,7 +26,7 @@ compileJava {
 }
 
 run {
-    args '-h'.split('\\s+')
+//    args '-h'.split('\\s+')
 }
 
 CreateStartScripts startScripts = project.startScripts
