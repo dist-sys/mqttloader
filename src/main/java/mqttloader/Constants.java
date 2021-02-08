@@ -36,7 +36,7 @@ public class Constants {
     public static final SimpleDateFormat DATE_FORMAT_FOR_FILENAME = new SimpleDateFormat("yyyyMMdd-HHmmss");
 
     public enum Opt {
-        CONFIG("c", true, "Configuration file name.", "mqttloader.conf"),
+        CONFIG("c", true, "Configuration file's path.", "mqttloader.conf"),
         HELP("h", false, "Display help.");
 
         private String name;

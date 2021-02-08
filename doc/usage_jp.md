@@ -1,5 +1,6 @@
-# MQTTLoader 利用方法 (v0.7.3)
-MQTTLoaderは、MQTT v5.0とv3.1.1に対応した負荷テストツール（クライアントツール）です。
+# MQTTLoader 利用方法 (v0.8.0)
+MQTTLoaderは、MQTT v5.0とv3.1.1に対応した負荷テストツール（クライアントツール）です。  
+v0.8.0から、ブローカとのTLS接続にも対応しました。
 
 ## 1. 環境要件
 MQTTLoader は Java を利用可能なOS（Windows, MacOS, Ubuntu Linux等）上で動きます。  
@@ -10,6 +11,12 @@ Java SE 8以降で動作します。（より古いバージョンでの動作�
 
 https://github.com/dist-sys/mqttloader/releases
 
+以下は、Curlコマンドを使ってダウンロードする場合の例です。
+
+```
+$ curl -OL https://github.com/dist-sys/mqttloader/releases/download/v0.8.0/mqttloader-0.8.0.zip
+```
+
 ダウンロードしたファイルを解凍すると、以下のディレクトリ構造が得られます。
 
 ```
@@ -19,100 +26,170 @@ mqttloader/
     +-- mqttloader.bat
 +-- lib/
 +-- logging.properties
++-- mqttloader.conf
 ```
 
 *bin* に入っているのがMQTTLoaderの実行スクリプトです。  
-Windowsユーザはmqttloader.bat（バッチファイル）を、Linux等のユーザはmqttloader（シェルスクリプト）を使います。  
-このスクリプトを以下のように実行すると、ヘルプが表示されます。
-
-`$ ./mqttloader -h`
+Windowsユーザは *mqttloader.bat* （バッチファイル）を、Linux等のユーザは *mqttloader* （シェルスクリプト）を使います。  
+例えばLinuxの場合、 *bin* ディレクトリに移動して以下コマンドを打つことで、MQTTLoaderを実行できます。
 
 ```
-MQTTLoader version 0.7.3
-usage: mqttloader.Loader -b <arg> [-v <arg>] [-p <arg>] [-s <arg>] [-pq
-       <arg>] [-sq <arg>] [-ss] [-r] [-t <arg>] [-d <arg>] [-m <arg>] [-ru
-       <arg>] [-rd <arg>] [-i <arg>] [-st <arg>] [-et <arg>] [-l <arg>]
-       [-n <arg>] [-im] [-un <arg>] [-pw <arg>] [-h]
- -b,--broker <arg>        Broker URL. E.g., tcp://127.0.0.1:1883
- -v,--version <arg>       MQTT version ("3" for 3.1.1 or "5" for 5.0).
-  :
-  :
+$ ./mqttloader
 ```
 
-例えば以下のように実行すると、MQTTLoader は publisher と subscriber をひとつずつ立ち上げ、publisher からは10個のメッセージが送信（PUBLISH）されます。
+*mqttloader.conf* は設定ファイルです。  
+詳細は後述しますが、例えば以下のように書きます。
 
-`$ ./mqttloader -b tcp://<IP>:<PORT> -p 1 -s 1 -m 10`
+```
+broker = <ブローカのIPアドレス or FQDN>
+broker_port = <ブローカのポート番号>
+num_publishers = 1
+num_subscribers = 1
+num_messages = 10
+```
+
+上記設定内容の場合、MQTTLoader は publisher と subscriber をひとつずつ立ち上げ、publisher からは10個のメッセージが送信（PUBLISH）されます。  
+デフォルトでは *mqttloader.conf* が使われますが、 `-c` オプションにて任意の場所にある設定ファイルを指定可能です。 
+
+`$ ./mqttloader -c "/home/testuser/myconfig.conf"`
 
 MQTTLoaderの動作を確認するだけなら、パブリックブローカを使うのが手軽です。  
-例えば、以下のように実行すると、HiveMQが提供しているパブリックブローカに接続することができます。  
+例えば、設定ファイルにて以下のようにブローカを指定すると、HiveMQが提供しているパブリックブローカに接続することができます。  
 （高い負荷をかけるような使い方にならないよう、注意してください。）
 
-`$ ./mqttloader -b tcp://broker.hivemq.com:1883 -p 1 -s 1 -m 10`
+```
+broker = broker.hivemq.com
+broker_port = 1883
+```
 
-**MQTTLoaderは、デフォルトで送受信レコードをファイル出力します。長時間実行した場合、ファイルサイズが大きくなることがありますので、注意してください。**  
-ファイルを出力しないインメモリモードで動かすことも可能です。  
-詳細は **4. 測定結果の見方 > 送受信レコードファイル** を参照してください。
+## 3. MQTTLoaderのパラメータ
+*mqttloader.conf* で設定できるパラメータの一覧を、以下に示します。
+
+| パラメータ | 指定必須 | デフォルト値 | 説明 |
+|:-----------|:------------:|:------------|:------------|
+| broker | ○ | (無し) | ブローカのIPアドレスまたはFQDN。 <br>例： `broker = 127.0.0.1` |
+| broker_port | × | 1883 (non-TLS)<br>8883 (TLS) | ブローカのポート番号。 <br>例： `broker_port = 1883` |
+| mqtt_version | × | 5 | MQTTバージョン。 `3` を指定するとMQTT v3.1.1、`5` を指定するとMQTT v5.0。 |
+| num_publishers | × | 1 | publisher数。全publisherは同じトピックにメッセージを送信。 |
+| num_subscribers | × | 1 | subscriber数。全subscriberは同じトピックをsubscribe。 |
+| qos_publisher | × | 0 | publisherのQoSレベル。<br>設定可能な値：0/1/2 |
+| qos_subscriber | × | 0 | subscriberのQoSレベル。<br>設定可能な値：0/1/2 |
+| shared_subscription | × | false | Shared subscriptionの有効/無効を指定するフラグ。指定可能な値は `true` / `false` 。MQTT v5.0でのみ設定可。<br>有効にすると、各メッセージは全subscriberのうちいずれかひとつに届く。<br>例： `shared_subscription = true` |
+| retain | × | false | Retainの有効/無効を指定するフラグ。指定可能な値は `true` / `false` 。 |
+| topic | × | mqttloader-test-topic | 測定で用いられるトピック名。 |
+| payload | × | 20 | publisherが送信するメッセージのペイロードサイズ。単位はbyte。設定可能な最小値は8。 |
+| num_messages | × | 100 | **各**publisherによって送信されるメッセージの数。 |
+| ramp_up | × | 0 | ランプアップ時間。単位は秒。<br>詳細は **4. 測定結果の見方** を参照。 |
+| ramp_down | × | 0 | ランプダウン時間。単位は秒。<br>詳細は **4. 測定結果の見方** を参照。 |
+| interval | × | 0 | 各publisherがメッセージを送信する間隔。単位はミリ秒。 |
+| subscriber_timeout | × | 5 | subscriberの受信タイムアウト。単位は秒。 |
+| exec_time | × | 60 | 測定の実行時間上限。単位は秒。 |
+| log_level | × | INFO | ログレベル。<br>設定可能な値：`SEVERE`/`WARNING`/`INFO`/`ALL` |
+| ntp | × | (無し) | NTPサーバのIPアドレスまたはFQDN。設定すると、スループットやレイテンシの計算がNTPサーバ時刻を基準として行われる。<br>複数のMQTTLoaderを異なるマシン上で実行する場合には設定することが望ましい。<br>例：`ntp = ntp.nict.jp` |
+| output <sup>**※1※2**</sup> | × | (無し) | 測定レコードを書き出すディレクトリのパス。未指定の場合、MQTTLoaderはメモリ上でのみ動作。 <br>例： `output = /home/testuser` |
+| user_name | × | (無し) | ユーザ名（ブローカにてパスワード認証が設定されている場合に指定）。 |
+| password | × | (無し) | パスワード（ブローカにてパスワード認証が設定されている場合に指定）。 |
+| tls_truststore <sup>**※1**</sup> | × | (無し) | TLS認証で用いるトラストストアファイル（JKS形式）のパス。このパラメータを指定することで、TLS認証が有効になる。 <br>例： `tls_truststore = /home/testuser/truststore.jks` |
+| tls_truststore_pass | × | (無し) | トラストストアファイルのパスワード。 |
+| tls_keystore <sup>**※1**</sup> | × | (無し) | TLSクライアント認証で用いるキーストアファイル（JKS形式）のパス。このパラメータを指定することで、TLSクライアント認証が有効になる。 <br>例： `tls_keystore = /home/testuser/keystore.jks` |
+| tls_keystore_pass | × | (無し) | キーストアファイルのパスワード。 |
+
+<sup>**※1**</sup> Windowsのファイルパスの区切り文字 ` \ ` はエスケープする必要があります。例えば、`output = C:\\Users\\testuser\\outDir` のように書く必要があります。
+
+<sup>**※2**</sup> `output` を指定して長時間実行した場合、出力されるファイルのサイズが非常に大きくなることがあるため、注意してください。詳細は **4. 測定結果の見方 > 送受信レコードファイル** を参照してください。
+
+### 測定終了までの時間について
+MQTTLoaderは、以下の条件をすべて満たすと、クライアントを切断させ終了します。  
+- 全publisherがメッセージ送信を完了
+- 全subscriberのメッセージ受信のうち、最後の受信からパラメータ`subscriber_timeout`で指定した秒数が経過
+
+また、MQTTLoaderは、パラメータ`exec_time`で指定された時間が経過すると、メッセージ送受信中であっても、終了します。  
+**一定数のメッセージ送受信**をテストしたい場合は、`num_messages`でメッセージ数を設定し、`exec_time`を十分長めに設定します。  
+**一定時間の測定**を行いたい場合には、`exec_time`を用いて測定時間を設定し、`num_messages`を十分大きな値に設定します。
 
 ### 複数台での実行
-複数台のマシン上でMQTTLoaderを動かすこともできます。  
-
+複数台のマシン上でMQTTLoaderを動かすことができます。  
 1台のマシン上でpublisherとsubscriberを動かした場合、subscriberの受信負荷によってpublisherの送信スループットが低下する等の可能性があります。  
 publisherとsubscriberを別マシンで動かすことで、負荷が相互に影響することを避けることができます。
 
-例えば、ホストA上で以下のように実行します。
+例えば、ホストA上で、以下の設定でMQTTLoaderを実行します。
 
-`$ ./mqttloader -b tcp://<IP>:<PORT> -p 0 -s 1 -st 20 -n <NTP-SERVER>`
+```
+broker = <IP>
+broker_port = <PORT>
+num_publishers = 0
+num_subscribers = 1
+subscriber_timeout = 20
+ntp = <NTP-SERVER>
+```
 
-続いて、ホストB上で以下のように実行します。
+続いて、ホストB上で以下の設定でMQTTLoaderを実行します。
 
-`$ ./mqttloader -b tcp://<IP>:<PORT> -p 1 -s 0 -m 10 -n <NTP-SERVER>`
+```
+broker = <IP>
+broker_port = <PORT>
+num_publishers = 1
+num_subscribers = 0
+num_messages = 10
+ntp = <NTP-SERVER>
+```
 
 これにより、ホストB上のpublisherから、ホストA上のsubscriberへ、ブローカを経由してメッセージが流れます。  
-複数台で実行する場合、以下のパラメータ設定に留意してください。
+複数台で実行する場合、設定ファイルの以下のパラメータに留意してください。
 
-- `-n` にて同じNTPサーバを指定すること  
-- `-st` にてsubscriberの受信タイムアウト時間を十分に長くとること  
+- `ntp` にて同じNTPサーバを指定すること  
+- `subscriber_timeout` にてsubscriberの受信タイムアウト時間を十分に長くとること  
 
 前者はレイテンシ計算の正確性を上げるため、後者はpublisher側のプログラムを実行する前にsubscriberがタイムアウトしてしまうことを防ぐため、です。  
-各パラメータの詳細については **3. MQTTLoaderのパラメータ** を参照してください。
 
-## 3. MQTTLoaderのパラメータ
+### TLS接続
+MQTTLoaderは、ブローカとのTLS接続が可能です。  
 
-| パラメータ | デフォルト値 | 説明 |
-|:-----------|:------------|:------------|
-| -b \<arg\> | （無し） | 指定必須。ブローカのURL。<br>例：`tcp://127.0.0.1:1883` |
-| -v \<arg\> | 5 | MQTTバージョン。 `3` を指定するとMQTT v3.1.1、`5` を指定するとMQTT v5.0。 |
-| -p \<arg\> | 1 | publisher数。2以上の場合、全publisherは同じトピックにメッセージを送信。 |
-| -s \<arg\> | 1 | subscriber数。2以上の場合、全subscriberは同じトピックをsubscribe。 |
-| -pq \<arg\> | 0 | publisherが送信するメッセージのQoSレベル。<br>設定可能な値：0/1/2 |
-| -sq \<arg\> | 0 | subscriber側のQoSレベル。<br>設定可能な値：0/1/2 |
-| -ss |  | Shared subscriptionを有効にするかどうか（デフォルト：無効）。MQTT v5.0でのみ設定可。<br>有効にすると、各メッセージは全subscriberのうちいずれかひとつに届く。 |
-| -r |  | publisherの送信メッセージにてRetainを有効にするかどうか（デフォルト：無効）。 |
-| -t \<arg\> | mqttloader-test-topic | 測定で用いられるトピック名 |
-| -d \<arg\> | 20 | publisherが送信するメッセージのデータサイズ（MQTTパケットのペイロードサイズ）。単位はbyte。設定可能な最小値は8。 |
-| -m \<arg\> | 100 | **各**publisherによって送信されるメッセージの数。 |
-| -ru \<arg\> | 0 | ランプアップ時間。単位は秒。<br>詳細は **4. 測定結果の見方** を参照。 |
-| -rd \<arg\> | 0 | ランプダウン時間。単位は秒。<br>詳細は **4. 測定結果の見方** を参照。 |
-| -i \<arg\> | 0 | 各publisherがメッセージを送信する間隔。単位はミリ秒。 |
-| -st \<arg\> | 5 | subscriberの受信タイムアウト。単位は秒。 |
-| -et \<arg\> | 60 | 測定の実行時間上限。単位は秒。 |
-| -l \<arg\> | INFO | ログレベル。<br>設定可能な値：`SEVERE`/`WARNING`/`INFO`/`ALL` |
-| -n \<arg\> | （無し） | NTPサーバのURL。設定すると時刻同期が有効になる（デフォルト：無効）。<br>例：`ntp.nict.jp`　 |
-| -im \<arg\> | （無し） | MQTTLoaderをメモリ上でのみ動作させる。デフォルトでは、測定レコードはファイルに書き出される。 |
-| -un \<arg\> | （無し） | ユーザ名（ブローカにてパスワード認証が設定されている場合に指定）。 |
-| -pw \<arg\> | （無し） | パスワード（ブローカにてパスワード認証が設定されている場合に指定）。 |
-| -h |  | ヘルプを表示 |
+ブローカとTLS接続するためには、まず、CA証明書をインポートしたトラストストアファイルを、JKS（Java Key Store）形式で用意します。  
+そして、用意したJKSファイルを、設定ファイルの `tls_truststore` で指定します。
 
-MQTTLoaderは、以下の条件をすべて満たすと、クライアントを切断させ終了します。  
-- 全publisherがメッセージ送信を完了
-- 全subscriberのメッセージ受信のうち、最後の受信からパラメータ`-st`で指定した秒数が経過
+以下、Mosquittoのパブリックブローカを例に、手順を述べます。
 
-また、MQTTLoaderは、パラメータ`-et`によって指定される時間が経過すると、メッセージ送受信中であっても、終了します。  
-**一定数のメッセージ送受信**をテストしたい場合は、`-et`は長めに設定しておくと良いでしょう。  
-**一定時間の測定**を行いたい場合には、`-et`を用いて測定時間を設定し、`-m`には十分大きな値を設定します。
+1. https://test.mosquitto.org/ から、CA証明書（mosquitto.org.crt）をダウンロード
+2. *keytool* コマンドを使い、トラストストアファイルを生成<br>
+`$ keytool -importcert -alias rootCA -trustcacerts -keystore ./truststore.jks -storetype jks -storepass testpass -file ./mosquitto.org.crt`<br>
+ここでは、ファイル名を `truststore.jks` 、パスワードを `testpass` として生成している。
+3. トラストストアファイルを、適切なディレクトリに配置。ここでは、 `/home/testuser` に置くと仮定する。
+4. MQTTLoaderの設定ファイルに、以下を指定<br>
+`broker = test.mosquitto.org`<br>
+`broker_port = 8883`<br>
+`tls_truststore = /home/testuser/truststore.jks`<br>
+`tls_truststore_pass = testpass`
+5. MQTTLoaderを実行
 
-パラメータ`-n`を設定すると、MQTTLoaderは指定されたNTPサーバから時刻のオフセット情報（NTPサーバ時刻からのずれ）を取得し、スループットやレイテンシの計算にそれを反映します。  
-複数のMQTTLoaderを異なるマシン上で実行する場合に、利用を検討してください。
+#### TLSクライアント認証
+クライアント認証もおこなう場合、上記に加え、キーストアファイル（JKS形式）の用意が必要です。  
+キーストアファイルには、クライアント証明書・クライアントの鍵・CA証明書を格納します。  
+用意したキーストアファイルを、設定ファイルの `tls_keystore` で指定することで、TLSクライアント認証が有効となります。
+
+以下、Mosquittoのパブリックブローカを例に、手順を述べます。
+
+1. 上記の手順により、トラストストアファイルを用意
+2. クライアント鍵を生成<br>
+`$ openssl genrsa -out client.key`
+3. 署名要求（CSR）を生成<br>
+`$ openssl req -out client.csr -key client.key -new`
+4. クライアント証明書の作成<br>
+https://test.mosquitto.org/ssl/ にCSRを入力して、 client.crt をダウンロードする。
+5. キーストアファイルの生成<br>
+mosquitto.org.crt、client.key、client.crt があるディレクトリにて、以下のコマンドを実行<br>
+`$ openssl pkcs12 -export -out client.p12 -passout pass:testpass -passin pass:testpass -inkey client.key -in client.crt -certfile mosquitto.org.crt`<br>
+`$ keytool -importkeystore -srckeystore client.p12 -srcstorepass testpass -srcstoretype PKCS12 -destkeystore keystore.jks -deststorepass testpass -deststoretype JKS`<br>
+6. キーストアファイルを、適切なディレクトリに配置。ここでは、トラストストアファイルと同様 `/home/testuser` に置くと仮定する。
+7. MQTTLoaderのコンフィグファイルに、以下を指定<br>
+`broker = test.mosquitto.org`<br>
+`broker_port = 8884`<br>
+`tls_truststore = /home/testuser/truststore.jks`<br>
+`tls_truststore_pass = testpass`<br>
+`tls_keystore = /home/testuser/keystore.jks`<br>
+`tls_keystore_pass = testpass`
+8. MQTTLoaderを実行
+
 
 ## 4. 測定結果の見方
 ### 標準出力のサマリ情報
@@ -140,8 +217,13 @@ QoSレベルが1または2の場合は、それぞれ、PUBACKおよびPUBCOMP�
 測定が終了したら、MQTTLoaderはカウントしたメッセージ数を集計し、最大スループット、平均スループット、送信メッセージ数を計算します。    
 `Per second throughput[msg/s]`は、スループット値の時間変化を秒単位で列挙したものです。  
 
-パラメータ`-ru`と`-rd`を用いると、測定開始直後と終了直前の一定秒数分を、集計対象データから除外することができます。    
-例えば、 `-ru 1 -rd 1` と設定した場合、最初と最後の1秒間のデータは集計対象外となります。
+パラメータ`ramp_up`と`ramp_down`を用いると、測定開始直後と終了直前の一定秒数分を、集計対象データから除外することができます。    
+例えば以下のように設定した場合、最初と最後の1秒間のデータは集計対象外となります。
+
+```
+ramp_up = 1
+ramp_down = 1
+```
 
 subscriberに関しても、上記と同様にして、受信メッセージのスループットが計算されます。  
 これに加えて、subscriber側では、最大レイテンシと平均レイテンシも計算されます。  
@@ -150,23 +232,13 @@ subscriberに関しても、上記と同様にして、受信メッセージの�
 
 レイテンシを正確に算出するためには、publisherとsubscriberの時刻が同期されている必要があります。  
 このため、複数の異なるマシン上でMQTTLoaderを動かす場合（例えば、publisherとsubscriberを別マシンで動かす場合）には、注意が必要です。  
-`-n`パラメータを使うと、MQTTLoaderはNTPサーバから時刻情報を取得し、その情報をもとに送受信時刻やレイテンシを計算するため、マシンの時刻がずれていても（ある程度）正確なレイテンシを得られます。
+`ntp` パラメータを使うと、MQTTLoaderはNTPサーバから時刻情報を取得し、その情報をもとに送受信時刻やレイテンシを計算するため、マシンの時刻がずれていても（ある程度）正確なレイテンシを得られます。
 
 ### 送受信レコードファイル
-デフォルトでは、MQTTLoaderはMQTTメッセージの送受信記録をファイルに出力します。  
-以下のように、 `mqttloader` ディレクトリの直下に、csv形式のファイルとして出力されます。  
+`output` パラメータが指定されている場合、MQTTLoaderはMQTTメッセージの送受信記録をファイルに出力します。  
+`output` で指定されたディレクトリの直下に、csv形式のファイルとして出力されます。  
 ファイル名は測定開始日時から生成されます。  
-なお、GradleやIDEから実行した場合には、作業ディレクトリにファイルが作成されます。
-
-```
-mqttloader/
-+-- bin/
-    +-- mqttloader
-    +-- mqttloader.bat
-+-- lib/
-+-- logging.properties
-+-- mqttloader_xxxxxxxx-xxxxxx.csv
-```
+なお、指定したディレクトリが存在しない場合は、新たにディレクトリが作成されます。
 
 このcsvファイルには、以下のようなデータが記録されます。
 
@@ -187,8 +259,6 @@ mqttloader/
 ```
 
 MQTTLoaderは、測定結果のサマリをコンソールに出力しますが、追加の集計・分析を行いたい場合には上記のファイルを使ってください。  
-なお、ファイル出力の負荷を抑えて測定をおこないたい場合には、 `-im` パラメータによりインメモリモードで動作させることができます。  
- `-im` パラメータを指定した場合、上記のcsvファイルは作成されません。
 
 ---
 ---
@@ -246,24 +316,6 @@ gradlewコマンドを初めて実行する際には、Gradleが自動的にダ�
 *distributions* ディレクトリに入っているアーカイブファイル（tar または zip）を解凍することで、MQTTLoaderのバイナリが得られます。
 
 ### 5-d. GradleによるMQTTLoaderの実行
-gradlewコマンドを使ってMQTTLoaderを実行することもできます。
-
-*\<ROOT_DIR\>/build.gradle* 内の以下の箇所に、実行時オプションが記述されています。
-
-```
-run {
-    args '-h'.split('\\s+')
-}
-```
-
-例えば、以下のように指定することで、MQTTLoader は publisher と subscriber をひとつずつ立ち上げ、publisher からは10個のメッセージが送信（PUBLISH）されます。
-
-```
-run {
-    args '-b tcp://<IP>:<PORT> -p 1 -s 1 -m 10'.split('\\s+')
-}
-```
-
-上記のように *build.gradle* にオプションを記述した上で、 *\<ROOT_DIR\>* にて以下のgradlewコマンドを実行することで、MQTTLoaderを実行できます。 
+*\<ROOT_DIR\>* にて以下のgradlewコマンドを実行することで、MQTTLoaderを実行できます。 
 
 `$ ./gradlew run`
