@@ -1,4 +1,4 @@
-# MQTTLoader usage (v0.8.1)
+# MQTTLoader usage (v0.8.2)
 MQTTLoader is a load testing tool (client tool) for MQTT.  
 It supports both MQTT v5.0 and v3.1.1.  
 From v0.8.0, it supports TLS authentication.
@@ -13,7 +13,7 @@ Download the archive file (zip or tar) from: https://github.com/dist-sys/mqttloa
 Below is an example of downloading by using curl command.
 
 ```
-$ curl -OL https://github.com/dist-sys/mqttloader/releases/download/v0.8.1/mqttloader-0.8.1.zip
+$ curl -OL https://github.com/dist-sys/mqttloader/releases/download/v0.8.2/mqttloader-0.8.1.zip
 ```
 
 By extracting it, you can get the following files.
@@ -53,6 +53,7 @@ By default *mqttloader.conf* is used, but you can specify your own configuration
 
 `$ ./mqttloader -c "/home/testuser/myconfig.conf"`
 
+Hereafter, we assume that the default configuration file *mqttloader.conf* is used.
 If you just want to quickly confirm how MQTTLoader works, using a public broker is an easy way.  
 For example, a public MQTT broker provided by HiveMQ is used by the following configuration.  
 (Please do not make a heavy load on public brokers.)
@@ -112,7 +113,7 @@ You can run MQTTLoader on multiple machines.
 Running both publishers and subscribers on a single machine may cause mutual influence, e.g., the subscribers' receiving load lowers the publishers' throughput.  
 By running publishers and subscribers separately on different machines, you can avoid such mutual influence.  
 
-For example, on a host A, you can run MQTTLoader with the following configuration:
+For example, on a host A, you can run MQTTLoader with the following configuration in *mqttloader.conf*:
 
 ```
 broker = <IP>
@@ -123,7 +124,7 @@ subscriber_timeout = 20
 ntp = <NTP-SERVER>
 ```
 
-Subsequently, you can run another MQTTLoader on a host B with the following configuration:
+Subsequently, you can run another MQTTLoader on a host B with the following configuration in *mqttloader.conf*:
 
 ```
 broker = <IP>
@@ -135,7 +136,7 @@ ntp = <NTP-SERVER>
 ```
 
 By these, from the publisher on host B to the subscriber on the host A via the broker, MQTT messages are delivered.  
-When running on multiple machines, the following parameters in the configuration file should be considered.
+When running on multiple machines, the following parameters in *mqttloader.conf* should be considered.
 
 - Specify the same NTP server on host A and host B with the parameter `ntp`.  
 - Specify enough long timeout period with the parameter `subscriber_timeout`.  
@@ -146,7 +147,7 @@ The former is to improve the accuracy of latency calculation, whereas the latter
 MQTTLoader supports TLS authentication.  
 
 To connect with a broker by TLS, truststore file in JKS (Java Key Store) format that contains CA certificate is needed.  
-By specifying the JKS file with the parameter `tls_truststore` in the configuration file, TLS authentication is enabled. 
+By specifying the JKS file with the parameter `tls_truststore` in *mqttloader.conf*, TLS authentication is enabled. 
 
 Below is an example procedure when using Mosquitto's public broker.
 
@@ -155,7 +156,7 @@ Below is an example procedure when using Mosquitto's public broker.
 `$ keytool -importcert -alias rootCA -trustcacerts -keystore ./truststore.jks -storetype jks -storepass testpass -file ./mosquitto.org.crt`<br>
 In this example, the file name is set to `truststore.jks` and the password is set to `testpass`.
 3. Place the truststore file in an appropriate directory. In this example, we assume to place it in `/home/testuser`.
-4. Specify the following parameters in MQTTLoader's configuration file.<br>
+4. Specify the following parameters in *mqttloader.conf*.<br>
 `broker = test.mosquitto.org`<br>
 `broker_port = 8883`<br>
 `tls_truststore = /home/testuser/truststore.jks`<br>
@@ -165,7 +166,7 @@ In this example, the file name is set to `truststore.jks` and the password is se
 #### TLS client authentication
 To enable client authentication, you need to prepare keystore file in JKS format in addition to the above mentioned procedure.  
 The keystore file must contain client key / client certificate / CA certificate.  
-By specifying the keystore file with the parameter `tls_keystore` in the configuration file, TLS client authentication is enabled.
+By specifying the keystore file with the parameter `tls_keystore` in *mqttloader.conf*, TLS client authentication is enabled.
 
 Below is an example procedure when using Mosquitto's public broker.
 
@@ -180,7 +181,7 @@ https://test.mosquitto.org/ssl/
 `$ openssl pkcs12 -export -out client.p12 -passout pass:testpass -passin pass:testpass -inkey client.key -in client.crt -certfile mosquitto.org.crt`<br>
 `$ keytool -importkeystore -srckeystore client.p12 -srcstorepass testpass -srcstoretype PKCS12 -destkeystore keystore.jks -deststorepass testpass -deststoretype JKS`<br>
 6. Place the keystore file in an appropriate directory. In this example, we assume to place it in `/home/testuser` together with the truststore file.
-7. Specify the following parameters in MQTTLoader's configuration file.<br>
+7. Specify the following parameters in *mqttloader.conf*.<br>
 `broker = test.mosquitto.org`<br>
 `broker_port = 8884`<br>
 `tls_truststore = /home/testuser/truststore.jks`<br>
