@@ -1,4 +1,4 @@
-# MQTTLoader 利用方法 (v0.8.1)
+# MQTTLoader 利用方法 (v0.8.2)
 MQTTLoaderは、MQTT v5.0とv3.1.1に対応した負荷テストツール（クライアントツール）です。  
 v0.8.0から、ブローカとのTLS接続にも対応しました。
 
@@ -14,7 +14,7 @@ https://github.com/dist-sys/mqttloader/releases
 以下は、Curlコマンドを使ってダウンロードする場合の例です。
 
 ```
-$ curl -OL https://github.com/dist-sys/mqttloader/releases/download/v0.8.1/mqttloader-0.8.1.zip
+$ curl -OL https://github.com/dist-sys/mqttloader/releases/download/v0.8.2/mqttloader-0.8.1.zip
 ```
 
 ダウンロードしたファイルを解凍すると、以下のディレクトリ構造が得られます。
@@ -53,8 +53,9 @@ num_messages = 10
 
 `$ ./mqttloader -c "/home/testuser/myconfig.conf"`
 
+以降の説明は、デフォルトの設定ファイル *mqttloader.conf* を利用するものとして記述しています。
 MQTTLoaderの動作を確認するだけなら、パブリックブローカを使うのが手軽です。  
-例えば、設定ファイルにて以下のようにブローカを指定すると、HiveMQが提供しているパブリックブローカに接続することができます。  
+例えば、 *mqttloader.conf* にて以下のようにブローカを指定すると、HiveMQが提供しているパブリックブローカに接続することができます。  
 （高い負荷をかけるような使い方にならないよう、注意してください。）
 
 ```
@@ -135,7 +136,7 @@ ntp = <NTP-SERVER>
 ```
 
 これにより、ホストB上のpublisherから、ホストA上のsubscriberへ、ブローカを経由してメッセージが流れます。  
-複数台で実行する場合、設定ファイルの以下のパラメータに留意してください。
+複数台で実行する場合、 *mqttloader.conf* の以下のパラメータに留意してください。
 
 - `ntp` にて同じNTPサーバを指定すること  
 - `subscriber_timeout` にてsubscriberの受信タイムアウト時間を十分に長くとること  
@@ -146,7 +147,7 @@ ntp = <NTP-SERVER>
 MQTTLoaderは、ブローカとのTLS接続が可能です。  
 
 ブローカとTLS接続するためには、まず、CA証明書をインポートしたトラストストアファイルを、JKS（Java Key Store）形式で用意します。  
-そして、用意したJKSファイルを、設定ファイルの `tls_truststore` で指定します。
+そして、用意したJKSファイルを、 *mqttloader.conf* の `tls_truststore` で指定します。
 
 以下、Mosquittoのパブリックブローカを例に、手順を述べます。
 
@@ -155,7 +156,7 @@ MQTTLoaderは、ブローカとのTLS接続が可能です。
 `$ keytool -importcert -alias rootCA -trustcacerts -keystore ./truststore.jks -storetype jks -storepass testpass -file ./mosquitto.org.crt`<br>
 ここでは、ファイル名を `truststore.jks` 、パスワードを `testpass` として生成している。
 3. トラストストアファイルを、適切なディレクトリに配置。ここでは、 `/home/testuser` に置くと仮定する。
-4. MQTTLoaderの設定ファイルに、以下を指定<br>
+4.  *mqttloader.conf* に、以下を指定<br>
 `broker = test.mosquitto.org`<br>
 `broker_port = 8883`<br>
 `tls_truststore = /home/testuser/truststore.jks`<br>
@@ -165,7 +166,7 @@ MQTTLoaderは、ブローカとのTLS接続が可能です。
 #### TLSクライアント認証
 クライアント認証もおこなう場合、上記に加え、キーストアファイル（JKS形式）の用意が必要です。  
 キーストアファイルには、クライアント証明書・クライアントの鍵・CA証明書を格納します。  
-用意したキーストアファイルを、設定ファイルの `tls_keystore` で指定することで、TLSクライアント認証が有効となります。
+用意したキーストアファイルを、 *mqttloader.conf* の `tls_keystore` で指定することで、TLSクライアント認証が有効となります。
 
 以下、Mosquittoのパブリックブローカを例に、手順を述べます。
 

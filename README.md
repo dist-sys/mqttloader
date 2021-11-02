@@ -1,6 +1,5 @@
 # MQTTLoader
-MQTTLoader is a load testing tool (client tool) for MQTT.  
-It supports both MQTT v5.0 and v3.1.1, as well as TLS authentication is available.
+MQTTLoader is a load testing tool (client tool) for MQTT v5.0 and v3.1.1.  
 
 - [Usage (English)](https://github.com/dist-sys/mqttloader/blob/master/doc/usage_en.md)
 - [Usage (日本語)](https://github.com/dist-sys/mqttloader/blob/master/doc/usage_jp.md)
@@ -31,4 +30,4 @@ MQTTLoader is licensed under the Apache License, Version2.0.
 ## Contact
 https://www.banno-lab.net/en/contact/
 
-We welcome enquiries for research collaborations.
+We welcome inquiries for research collaborations.
