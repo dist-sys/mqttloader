@@ -13,7 +13,7 @@ Download the archive file (zip or tar) from: https://github.com/dist-sys/mqttloa
 Below is an example of downloading by using curl command.
 
 ```
-$ curl -OL https://github.com/dist-sys/mqttloader/releases/download/v0.8.2/mqttloader-0.8.1.zip
+$ curl -OL https://github.com/dist-sys/mqttloader/releases/download/v0.8.2/mqttloader-0.8.2.zip
 ```
 
 By extracting it, you can get the following files.
