@@ -14,7 +14,7 @@ https://github.com/dist-sys/mqttloader/releases
 以下は、Curlコマンドを使ってダウンロードする場合の例です。
 
 ```
-$ curl -OL https://github.com/dist-sys/mqttloader/releases/download/v0.8.2/mqttloader-0.8.1.zip
+$ curl -OL https://github.com/dist-sys/mqttloader/releases/download/v0.8.2/mqttloader-0.8.2.zip
 ```
 
 ダウンロードしたファイルを解凍すると、以下のディレクトリ構造が得られます。
