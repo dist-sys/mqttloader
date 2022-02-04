@@ -1,4 +1,4 @@
-# MQTTLoader 利用方法 (v0.8.2)
+# MQTTLoader 利用方法 (v0.8.3)
 MQTTLoaderは、MQTT v5.0とv3.1.1に対応した負荷テストツール（クライアントツール）です。  
 v0.8.0から、ブローカとのTLS接続にも対応しました。
 
@@ -14,7 +14,7 @@ https://github.com/dist-sys/mqttloader/releases
 以下は、Curlコマンドを使ってダウンロードする場合の例です。
 
 ```
-$ curl -OL https://github.com/dist-sys/mqttloader/releases/download/v0.8.2/mqttloader-0.8.2.zip
+$ curl -OL https://github.com/dist-sys/mqttloader/releases/download/v0.8.3/mqttloader-0.8.3.zip
 ```
 
 ダウンロードしたファイルを解凍すると、以下のディレクトリ構造が得られます。

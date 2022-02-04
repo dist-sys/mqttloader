@@ -19,7 +19,7 @@ package mqttloader;
 import java.text.SimpleDateFormat;
 
 public class Constants {
-    public static final String VERSION = "0.8.2";
+    public static final String VERSION = "0.8.3";
     public static final String BROKER_PREFIX_TCP = "tcp://";
     public static final String BROKER_PREFIX_TLS = "ssl://";
     public static final String BROKER_PORT_TCP = "1883";
