@@ -34,7 +34,7 @@ public abstract class AbstractPublisher extends AbstractClient implements Runnab
     protected final int pubInterval;
 
     protected ScheduledExecutorService service;
-    protected ScheduledFuture future;
+    protected ScheduledFuture<?> future;
     protected volatile boolean cancelled = false;
     private Recorder recorder;
 

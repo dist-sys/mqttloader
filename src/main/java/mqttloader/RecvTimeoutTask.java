@@ -17,8 +17,8 @@
 package mqttloader;
 
 import static mqttloader.Loader.cdl;
-import static mqttloader.Loader.lastRecvTime;
-
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -38,12 +38,12 @@ public class RecvTimeoutTask extends TimerTask {
 
     @Override
     public void run() {
-        long remainingTime = subTimeout*Constants.SECOND_IN_MILLI - (Util.getCurrentTimeMillis() - lastRecvTime);  // <timeout> - <elapsed time>
+        long remainingTime = subTimeout - Duration.between(Loader.lastRecvTime, Util.getCurrentTimeWithOffset()).get(ChronoUnit.SECONDS);  // <timeout> - <elapsed time>
         if (remainingTime <= 0) {
             Loader.LOGGER.info("Subscribers timed out.");
             cdl.countDown();
         } else {
-            timer.schedule(new RecvTimeoutTask(timer, subTimeout), remainingTime);
+            timer.schedule(new RecvTimeoutTask(timer, subTimeout), remainingTime*Constants.SECOND_IN_MILLI);
         }
     }
 }
