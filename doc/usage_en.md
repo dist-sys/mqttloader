@@ -82,7 +82,7 @@ The following table shows the parameters which can be set in *mqttloader.conf*.
 | num_messages | No | 100 | The number of messages sent by **each** publisher. |
 | ramp_up | No | 0 | Ramp-up time in seconds. <br>See **4. How to read the results** for details. |
 | ramp_down | No | 0 | Ramp-down time in seconds. <br>See **4. How to read the results** for details. |
-| interval | No | 0 | Publish interval in milliseconds. |
+| interval | No | 0 | Publish interval in microseconds. |
 | subscriber_timeout | No | 5 | Timeout for receiving messages by subscribers in seconds. |
 | exec_time | No | 60 | Maximum execution time for measurement in seconds. |
 | log_level | No | INFO | Log level. <br>Valid values are `SEVERE`/`WARNING`/`INFO`/`ALL`. |

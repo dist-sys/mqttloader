@@ -35,7 +35,6 @@ public abstract class AbstractSubscriber extends AbstractClient {
 
     protected void recordReceive(String topic, byte[] payload) {
         // Skip if preparation has not been completed yet.
-        // Time calculation methods in Util class, such as Util.getCurrentTimeMillis(), need startTime and startNanoTime have already been set.
         if(Loader.measurementStartTime==null) {
             return;
         }

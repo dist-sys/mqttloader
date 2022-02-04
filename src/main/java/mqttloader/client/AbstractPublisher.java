@@ -22,7 +22,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-
+import mqttloader.Constants;
 import mqttloader.Loader;
 import mqttloader.Record;
 import mqttloader.Recorder;
@@ -52,7 +52,7 @@ public abstract class AbstractPublisher extends AbstractClient implements Runnab
         if(pubInterval==0){
             future = service.schedule(this, delay, TimeUnit.MILLISECONDS);
         }else{
-            future = service.scheduleAtFixedRate(this, delay, pubInterval, TimeUnit.MILLISECONDS);
+            future = service.scheduleAtFixedRate(this, delay*Constants.MILLISECOND_IN_MICRO, pubInterval, TimeUnit.MICROSECONDS);
         }
     }
 

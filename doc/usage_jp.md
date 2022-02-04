@@ -82,7 +82,7 @@ broker_port = 1883
 | num_messages | × | 100 | **各**publisherによって送信されるメッセージの数。 |
 | ramp_up | × | 0 | ランプアップ時間。単位は秒。<br>詳細は **4. 測定結果の見方** を参照。 |
 | ramp_down | × | 0 | ランプダウン時間。単位は秒。<br>詳細は **4. 測定結果の見方** を参照。 |
-| interval | × | 0 | 各publisherがメッセージを送信する間隔。単位はミリ秒。 |
+| interval | × | 0 | 各publisherがメッセージを送信する間隔。単位はマイクロ秒。 |
 | subscriber_timeout | × | 5 | subscriberの受信タイムアウト。単位は秒。 |
 | exec_time | × | 60 | 測定の実行時間上限。単位は秒。 |
 | log_level | × | INFO | ログレベル。<br>設定可能な値：`SEVERE`/`WARNING`/`INFO`/`ALL` |
