@@ -24,8 +24,9 @@ Average latency[ms]: 1.39
 
 MQTTLoader is licensed under the Apache License, Version2.0.
 
-## Publications
-- R. Banno, K. Ohsawa, Y. Kitagawa, T. Takada, T. Yoshizawa, "Measuring Performance of MQTT v5.0 Brokers with MQTTLoader", IEEE Consumer Communications & Networking Conference (CCNC), January 2021. (Demo paper)
+## Related publications
+- R. Banno, T. Yoshizawa, "A scalable IoT data collection method by shared-subscription with distributed MQTT brokers", EAI International Conference on Mobile Networks and Management (MONAMI), October 2021. [pdf](https://www.rbanno.net/data/paper/202110_EAI_MONAMI.pdf)
+- R. Banno, K. Ohsawa, Y. Kitagawa, T. Takada, T. Yoshizawa, "Measuring Performance of MQTT v5.0 Brokers with MQTTLoader", IEEE Consumer Communications & Networking Conference (CCNC), January 2021. (Demo paper) [pdf](https://www.rbanno.net/data/paper/202101_IEEE_CCNC.pdf)
 
 ## Contact
 https://www.banno-lab.net/en/contact/
