@@ -22,6 +22,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.TreeMap;
 import java.util.concurrent.ArrayBlockingQueue;
 
@@ -39,7 +41,7 @@ public class Recorder implements Runnable {
     private TreeMap<Integer, Integer> sendThroughputs = new TreeMap<>();
     private TreeMap<Integer, Integer> recvThroughputs = new TreeMap<>();
     private TreeMap<Integer, Long> latencySums = new TreeMap<>();
-    private TreeMap<Integer, Integer> latencyMaxs = new TreeMap<>();
+    private TreeMap<Integer, Long> latencyMaxs = new TreeMap<>();
 
     public Recorder(File file, boolean inMemory) {
         this.inMemory = inMemory;
@@ -75,7 +77,11 @@ public class Recorder implements Runnable {
                     recordInMemory(record);
                 } else {
                     StringBuilder sb = new StringBuilder();
-                    sb.append(record.getTimestamp());
+                    if(record.isSend()){
+                        sb.append(record.getSentEpochMicros());
+                    } else {
+                        sb.append(Util.getEpochMicros(record.getReceivedTime()));
+                    }
                     sb.append(",");
                     sb.append(record.getClientId());
                     if(record.isSend()) {
@@ -117,33 +123,40 @@ public class Recorder implements Runnable {
     }
 
     public void recordInMemory(Record record) {
-        int elapsedSecond = (int)((record.getTimestamp()-Util.getEpochMillis(Loader.measurementStartTime))/1000);
         if(record.isSend()) {
-            if(sendThroughputs.containsKey(elapsedSecond)) {
-                sendThroughputs.put(elapsedSecond, sendThroughputs.get(elapsedSecond)+1);
-            } else {
-                sendThroughputs.put(elapsedSecond, 1);
+            recordSendInMemory((int)((record.getSentEpochMicros()-Util.getEpochMicros(Loader.measurementStartTime))/Constants.SECOND_IN_MICRO));
+        } else {
+            recordReceiveInMemory((int)(Duration.between(Loader.measurementStartTime, record.getReceivedTime()).get(ChronoUnit.SECONDS)), record.getLatency());
+        }
+    }
+
+    public void recordSendInMemory(int elapsedSecond) {
+        if(sendThroughputs.containsKey(elapsedSecond)) {
+            sendThroughputs.put(elapsedSecond, sendThroughputs.get(elapsedSecond)+1);
+        } else {
+            sendThroughputs.put(elapsedSecond, 1);
+        }
+    }
+
+    public void recordReceiveInMemory(int elapsedSecond, long latency) {
+        if(recvThroughputs.containsKey(elapsedSecond)) {
+            recvThroughputs.put(elapsedSecond, recvThroughputs.get(elapsedSecond)+1);
+        } else {
+            recvThroughputs.put(elapsedSecond, 1);
+        }
+
+        if(latencySums.containsKey(elapsedSecond)) {
+            latencySums.put(elapsedSecond, latencySums.get(elapsedSecond)+latency);
+        } else {
+            latencySums.put(elapsedSecond, latency);
+        }
+
+        if(latencyMaxs.containsKey(elapsedSecond)) {
+            if(latencyMaxs.get(elapsedSecond) < latency) {
+                latencyMaxs.put(elapsedSecond, latency);
             }
         } else {
-            if(recvThroughputs.containsKey(elapsedSecond)) {
-                recvThroughputs.put(elapsedSecond, recvThroughputs.get(elapsedSecond)+1);
-            } else {
-                recvThroughputs.put(elapsedSecond, 1);
-            }
-
-            if(latencySums.containsKey(elapsedSecond)) {
-                latencySums.put(elapsedSecond, latencySums.get(elapsedSecond)+(long)record.getLatency());
-            } else {
-                latencySums.put(elapsedSecond, (long)record.getLatency());
-            }
-
-            if(latencyMaxs.containsKey(elapsedSecond)) {
-                if(latencyMaxs.get(elapsedSecond) < record.getLatency()) {
-                    latencyMaxs.put(elapsedSecond, record.getLatency());
-                }
-            } else {
-                latencyMaxs.put(elapsedSecond, record.getLatency());
-            }
+            latencyMaxs.put(elapsedSecond, latency);
         }
     }
 
@@ -180,7 +193,7 @@ public class Recorder implements Runnable {
         return latencySums;
     }
 
-    public TreeMap<Integer, Integer> getLatencyMaxs() {
+    public TreeMap<Integer, Long> getLatencyMaxs() {
         return latencyMaxs;
     }
 }

@@ -16,31 +16,39 @@
 
 package mqttloader;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+
 public class Record {
-    private long timestamp;
+    private long sentEpochMicros;
+    private Instant receivedTime;
     private String clientId;
     private boolean isSend;
-    private int latency;
 
     private boolean isStopSignal = false;
 
-    public Record(long timestamp, String clientId, boolean isSend, int latency) {
-        this.timestamp = timestamp;
+    public Record(long sentEpochMicros, Instant receivedTime, String clientId, boolean isSend) {
+        this.sentEpochMicros = sentEpochMicros;
+        this.receivedTime = receivedTime;
         this.clientId = clientId;
         this.isSend = isSend;
-        this.latency = latency;
     }
 
-    public Record(long timestamp, String clientId, boolean isSend) {
-        this(timestamp, clientId, isSend, -1);
+    public Record(long sentEpochMicros, String clientId, boolean isSend) {
+        this(sentEpochMicros, null, clientId, isSend);
     }
 
     public Record() {
         this.isStopSignal = true;
     }
 
-    public long getTimestamp() {
-        return timestamp;
+    public long getSentEpochMicros() {
+        return sentEpochMicros;
+    }
+
+    public Instant getReceivedTime() {
+        return receivedTime;
     }
 
     public String getClientId() {
@@ -51,11 +59,18 @@ public class Record {
         return isSend;
     }
 
-    public int getLatency() {
-        return latency;
-    }
-
     public boolean isStopSignal() {
         return isStopSignal;
+    }
+
+    public long getLatency() {
+        long latency = Util.getEpochMicros(receivedTime) - sentEpochMicros;
+        if(latency < 0) {
+            // If running MQTTLoader on multiple machines, a slight time error may cause a negative value of latency.
+            Loader.LOGGER.fine("Negative value of latency is converted to zero.");
+            return 0;
+        } else {
+            return latency;
+        }
     }
 }
