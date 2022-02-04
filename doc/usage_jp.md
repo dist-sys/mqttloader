@@ -198,25 +198,25 @@ MQTTLoadは標準出力に以下のような測定結果の情報を出力しま
 
 ```
 -----Publisher-----
-Maximum throughput[msg/s]: 18622
-Average throughput[msg/s]: 16666.666666666668
+Maximum throughput [msg/s]: 18622
+Average throughput [msg/s]: 16666.666
 Number of published messages: 100000
-Per second throughput[msg/s]: 11955, 16427, 18430, 18030, 18622, 16536
+Per second throughput [msg/s]: 11955, 16427, 18430, 18030, 18622, 16536
 
 -----Subscriber-----
-Maximum throughput[msg/s]: 18620
-Average throughput[msg/s]: 16666.666666666668
+Maximum throughput [msg/s]: 18620
+Average throughput [msg/s]: 16666.666
 Number of received messages: 100000
-Per second throughput[msg/s]: 11218, 16414, 18426, 18026, 18620, 17296
-Maximum latency[ms]: 81
-Average latency[ms]: 42.23691
+Per second throughput [msg/s]: 11218, 16414, 18426, 18026, 18620, 17296
+Maximum latency [ms]: 81.838
+Average latency [ms]: 42.236
 ```
 
 MQTTLoaderは、各publisherによるメッセージの送信をカウントします。  
 QoSレベルが1または2の場合は、それぞれ、PUBACKおよびPUBCOMPを受信したタイミングでカウントされます。
 
 測定が終了したら、MQTTLoaderはカウントしたメッセージ数を集計し、最大スループット、平均スループット、送信メッセージ数を計算します。    
-`Per second throughput[msg/s]`は、スループット値の時間変化を秒単位で列挙したものです。  
+`Per second throughput [msg/s]`は、スループット値の時間変化を秒単位で列挙したものです。  
 
 パラメータ`ramp_up`と`ramp_down`を用いると、測定開始直後と終了直前の一定秒数分を、集計対象データから除外することができます。    
 例えば以下のように設定した場合、最初と最後の1秒間のデータは集計対象外となります。
@@ -244,10 +244,10 @@ subscriberに関しても、上記と同様にして、受信メッセージの�
 このcsvファイルには、以下のようなデータが記録されます。
 
 ```
-1599643916416,ml-EeiE-p-00001,S,
-1599643916416,ml-EeiE-p-00000,S,
-1599643916419,ml-EeiE-s-00000,R,3
-1599643916422,ml-EeiE-p-00001,S,
+1599643916416823,ml-EeiE-p-00001,S,
+1599643916416882,ml-EeiE-p-00000,S,
+1599643916419123,ml-EeiE-s-00000,R,3165
+1599643916422982,ml-EeiE-p-00001,S,
  :
  :
 ```
@@ -256,10 +256,11 @@ subscriberに関しても、上記と同様にして、受信メッセージの�
 送受信種別が `R` の場合のみ、レイテンシも記載されます。
 
 ```
-タイムスタンプ（ミリ秒単位Unix時間）, クライアントID, 送受信種別（S: 送信, R: 受信）, レイテンシ（ミリ秒単位）
+タイムスタンプ（マイクロ秒単位Unix時間）, クライアントID, 送受信種別（S: 送信, R: 受信）, レイテンシ（マイクロ秒単位）
 ```
 
 MQTTLoaderは、測定結果のサマリをコンソールに出力しますが、追加の集計・分析を行いたい場合には上記のファイルを使ってください。  
+なお、コンソールに出力されるレイテンシはミリ秒単位（小数点以下3桁まで）であるのに対し、上記ファイルのレイテンシはマイクロ秒単位である点に注意してください。  
 
 ---
 ---

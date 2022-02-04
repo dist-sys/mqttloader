@@ -57,15 +57,15 @@ public class PublisherV5 extends AbstractPublisher {
 
     @Override
     protected void publish() {
-        long currentTime = Util.getEpochMillis(Util.getCurrentTimeWithOffset());
-        message.setPayload(Util.genPayloads(payloadSize, currentTime));
+        long sentEpochMicros = Util.getEpochMicros(Util.getCurrentTimeWithOffset());
+        message.setPayload(Util.genPayloads(payloadSize, sentEpochMicros));
         try {
             client.publish(topic, message);
         } catch (MqttException me) {
             me.printStackTrace();
         }
 
-        recordSend(currentTime);
+        recordSend(sentEpochMicros);
     }
 
     @Override

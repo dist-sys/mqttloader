@@ -398,7 +398,7 @@ public class Loader {
         if(Util.getPropValueInt(Prop.NUM_SUB) > 0){
             timer = new Timer();
             int subTimeout = Util.getPropValueInt(Prop.SUB_TIMEOUT);
-            timer.schedule(new RecvTimeoutTask(timer, subTimeout), subTimeout*1000);
+            timer.schedule(new RecvTimeoutTask(timer, subTimeout), subTimeout*Constants.SECOND_IN_MILLI);
         }
 
         int execTime = Util.getPropValueInt(Prop.EXEC_TIME);
@@ -451,14 +451,14 @@ public class Loader {
                 while ((str = br.readLine()) != null) {
                     StringTokenizer st = new StringTokenizer(str, ",");
                     long timestamp = Long.valueOf(st.nextToken());
-                    String clientId = st.nextToken(); //client ID
+                    int elapsedTime = (int)((timestamp - Util.getEpochMicros(Loader.measurementStartTime))/Constants.SECOND_IN_MICRO);
+                    st.nextToken(); //client ID
                     boolean isSend = st.nextToken().equals("S") ? true : false;
-                    int latency = -1;
-                    if (st.hasMoreTokens()) {
-                        latency = Integer.valueOf(st.nextToken());
+                    if(isSend){
+                        recorder.recordSendInMemory(elapsedTime);
+                    } else {
+                        recorder.recordReceiveInMemory(elapsedTime, Long.valueOf(st.nextToken()));
                     }
-
-                    recorder.recordInMemory(new Record(timestamp, clientId, isSend, latency));
                 }
 
                 br.close();
@@ -481,7 +481,7 @@ public class Loader {
         TreeMap<Integer, Integer> sendThroughputs = recorder.getSendThroughputs();
         TreeMap<Integer, Integer> recvThroughputs = recorder.getRecvThroughputs();
         TreeMap<Integer, Long> latencySums = recorder.getLatencySums();
-        TreeMap<Integer, Integer> latencyMaxs = recorder.getLatencyMaxs();
+        TreeMap<Integer, Long> latencyMaxs = recorder.getLatencyMaxs();
 
         int rampup = Util.getPropValueInt(Prop.RAMP_UP);
         int rampdown = Util.getPropValueInt(Prop.RAMP_DOWN);
@@ -504,21 +504,24 @@ public class Loader {
         System.out.println("-----Subscriber-----");
         printThroughput(recvThroughputs, false);
 
-        int maxLt = 0;
-        double aveLt = 0;
+        long maxLtMicros = 0;
+        double aveLtMicros = 0;
         long numMsg = 0;
         for(int elapsedSecond: latencySums.keySet()) {
-            if(latencyMaxs.get(elapsedSecond) > maxLt) {
-                maxLt = latencyMaxs.get(elapsedSecond);
+            if(latencyMaxs.get(elapsedSecond) > maxLtMicros) {
+                maxLtMicros = latencyMaxs.get(elapsedSecond);
             }
             int numInSec = recvThroughputs.get(elapsedSecond);
             numMsg += numInSec;
             double aveInSec = (double)latencySums.get(elapsedSecond)/numInSec;
-            aveLt = aveLt + ((aveInSec-aveLt)*numInSec)/numMsg;
+            aveLtMicros = aveLtMicros + ((aveInSec-aveLtMicros)*numInSec)/numMsg;
         }
 
-        System.out.println("Maximum latency[ms]: "+maxLt);
-        System.out.println("Average latency[ms]: "+String.format("%.2f", aveLt));
+        double maxLtMillis = (double)maxLtMicros/Constants.MILLISECOND_IN_MICRO;
+        double aveLtMillis = aveLtMicros/Constants.MILLISECOND_IN_MICRO;
+
+        System.out.println("Maximum latency [ms]: "+String.format("%.3f", maxLtMillis));
+        System.out.println("Average latency [ms]: "+String.format("%.3f", aveLtMillis));
     }
 
     /**
@@ -538,15 +541,15 @@ public class Loader {
         }
 
         double aveTh = throughputs.size()>0 ? (double)sumMsg/throughputs.size() : 0;
-        System.out.println("Maximum throughput[msg/s]: "+maxTh);
-        System.out.println("Average throughput[msg/s]: "+String.format("%.2f", aveTh));
+        System.out.println("Maximum throughput [msg/s]: "+maxTh);
+        System.out.println("Average throughput [msg/s]: "+String.format("%.3f", aveTh));
         if(forPublisher){
             System.out.println("Number of published messages: "+sumMsg);
         }else{
             System.out.println("Number of received messages: "+sumMsg);
         }
 
-        System.out.print("Per second throughput[msg/s]: ");
+        System.out.print("Per second throughput [msg/s]: ");
         for(int elapsedSecond: throughputs.keySet()){
             System.out.print(throughputs.get(elapsedSecond));
             if(elapsedSecond<throughputs.lastKey()){

@@ -29,10 +29,10 @@ public class Constants {
     public static final String SUB_CLIENT_ID_PREFIX = "ml-"+HOST_ID+"-s-";
     public static final String PUB_CLIENT_ID_PREFIX = "ml-"+HOST_ID+"-p-";
     public static final Record STOP_SIGNAL = new Record();
-    public static final int MILLISECOND_IN_NANO = 1000000;
+    public static final int MICROSECOND_IN_NANO = 1000;
     public static final int MILLISECOND_IN_MICRO = 1000;
-    public static final int SECOND_IN_NANO = 1000000000;
-    public static final int SECOND_IN_MILLI = 1000;
+    public static final long SECOND_IN_MILLI = 1000L;
+    public static final long SECOND_IN_MICRO = 1000000L;
     public static final SimpleDateFormat DATE_FORMAT_FOR_LOG = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z");
     public static final SimpleDateFormat DATE_FORMAT_FOR_FILENAME = new SimpleDateFormat("yyyyMMdd-HHmmss");
 

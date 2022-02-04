@@ -39,19 +39,11 @@ public abstract class AbstractSubscriber extends AbstractClient {
             return;
         }
 
-        Instant currentTime = Util.getCurrentTimeWithOffset();
-        long currentTimeMillis = Util.getEpochMillis(currentTime);
-        long pubTime = ByteBuffer.wrap(payload).getLong();
+        Instant receivedTime = Util.getCurrentTimeWithOffset();
+        long sentTime = ByteBuffer.wrap(payload).getLong();
 
-        int latency = (int)(currentTimeMillis - pubTime);
-        if (latency < 0) {
-            // If running MQTTLoader on multiple machines, a slight time error may cause a negative value of latency.
-            latency = 0;
-            Loader.LOGGER.fine("Negative value of latency is converted to zero.");
-        }
-
-        recorder.record(new Record(currentTimeMillis, clientId, false, latency));
-        Loader.lastRecvTime = currentTime;
+        recorder.record(new Record(sentTime, receivedTime, clientId, false));
+        Loader.lastRecvTime = receivedTime;
 //        Loader.LOGGER.fine("Received a message on topic \"" + topic + "\" (" + clientId + ").");
     }
 }

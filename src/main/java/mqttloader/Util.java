@@ -149,8 +149,8 @@ public class Util {
         return Instant.now().plusMillis(Loader.offset);
     }
 
-    public static long getEpochMillis(Instant time) {
-        return time.getEpochSecond()*1000L + time.getNano()/1000000;
+    public static long getEpochMicros(Instant time) {
+        return time.getEpochSecond()*Constants.SECOND_IN_MICRO + time.getNano()/Constants.MICROSECOND_IN_NANO;
     }
 
     public static void trimTreeMap(TreeMap<Integer, ?> map, int rampup, int rampdown) {

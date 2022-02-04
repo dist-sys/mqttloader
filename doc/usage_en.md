@@ -197,24 +197,24 @@ MQTTLoader displays results like the following on standard output.
 
 ```
 -----Publisher-----
-Maximum throughput[msg/s]: 18622
-Average throughput[msg/s]: 16666.666666666668
+Maximum throughput [msg/s]: 18622
+Average throughput [msg/s]: 16666.666
 Number of published messages: 100000
-Per second throughput[msg/s]: 11955, 16427, 18430, 18030, 18622, 16536
+Per second throughput [msg/s]: 11955, 16427, 18430, 18030, 18622, 16536
 
 -----Subscriber-----
-Maximum throughput[msg/s]: 18620
-Average throughput[msg/s]: 16666.666666666668
+Maximum throughput [msg/s]: 18620
+Average throughput [msg/s]: 16666.666
 Number of received messages: 100000
-Per second throughput[msg/s]: 11218, 16414, 18426, 18026, 18620, 17296
-Maximum latency[ms]: 81
-Average latency[ms]: 42.23691
+Per second throughput [msg/s]: 11218, 16414, 18426, 18026, 18620, 17296
+Maximum latency [ms]: 81.838
+Average latency [ms]: 42.236
 ```
 MQTTLoader counts the number of messages sent by publishers.  
 If QoS level is set to 1 or 2, counting is done when receiving PUBACK or PUBCOMP respectively.
 
 After completion, MQTTLoader calculates the maximum throughput, the average throughput, and the number of published messages.  
-`Per second throughput[msg/s]` is the time series of throughputs per second.  
+`Per second throughput [msg/s]` is the time series of throughputs per second.  
 
 By using the parameterse `ramp_up` and `ramp_down`, you can exclude the beginning and trailing data.  
 If you set the following parameter settings for example, the beginning one second and the trailing one second are excluded.
@@ -242,10 +242,10 @@ Note that if the specified directory doesn't exist, it is newly created.
 The file `mqttloader_xxxxxxxx-xxxxxx.csv` has records like the following:
 
 ```
-1599643916416,ml-EeiE-p-00001,S,
-1599643916416,ml-EeiE-p-00000,S,
-1599643916419,ml-EeiE-s-00000,R,3
-1599643916422,ml-EeiE-p-00001,S,
+1599643916416823,ml-EeiE-p-00001,S,
+1599643916416882,ml-EeiE-p-00000,S,
+1599643916419123,ml-EeiE-s-00000,R,3165
+1599643916422982,ml-EeiE-p-00001,S,
  :
  :
 ```
@@ -254,10 +254,11 @@ Each line, consists of comma-separeted values, indicates the following data.
 In the case that the event type is `R`, latency data follows.
 
 ```
-timestamp (Unix time in milliseconds), client ID, event type (S: send, R: receive), latency (in milliseconds)
+timestamp (Unix time in microseconds), client ID, event type (S: send, R: receive), latency (in microseconds)
 ```
 
 Although MQTTLoader outputs the measurement result to the console, you can use the above .csv file for further analysis.  
+Note that the latency in the above file is in microseconds, whereas that in the console is in milliseconds with three digits after the decimal point.  
 
 ---
 ---

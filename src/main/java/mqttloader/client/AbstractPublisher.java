@@ -98,8 +98,8 @@ public abstract class AbstractPublisher extends AbstractClient implements Runnab
         }
     }
 
-    protected void recordSend(long currentTime) {
-        recorder.record(new Record(currentTime, clientId, true));
+    protected void recordSend(long sentEpochMicros) {
+        recorder.record(new Record(sentEpochMicros, clientId, true));
 //        Loader.LOGGER.fine("Published a message to topic \"" + topic + "\" (" + clientId + ").");
     }
 
