@@ -16,7 +16,6 @@
 
 package mqttloader.client;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 import mqttloader.Loader;
@@ -58,7 +57,7 @@ public class PublisherV3 extends AbstractPublisher {
 
     @Override
     protected void publish() {
-        long currentTime = Util.getCurrentTimeMillis();
+        long currentTime = Util.getEpochMillis(Util.getCurrentTimeWithOffset());
         message.setPayload(Util.genPayloads(payloadSize, currentTime));
         try {
             client.publish(topic, message);

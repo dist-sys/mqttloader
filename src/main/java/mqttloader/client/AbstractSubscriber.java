@@ -19,7 +19,7 @@ package mqttloader.client;
 import static mqttloader.Constants.SUB_CLIENT_ID_PREFIX;
 
 import java.nio.ByteBuffer;
-
+import java.time.Instant;
 import mqttloader.Loader;
 import mqttloader.Record;
 import mqttloader.Recorder;
@@ -36,22 +36,23 @@ public abstract class AbstractSubscriber extends AbstractClient {
     protected void recordReceive(String topic, byte[] payload) {
         // Skip if preparation has not been completed yet.
         // Time calculation methods in Util class, such as Util.getCurrentTimeMillis(), need startTime and startNanoTime have already been set.
-        if(Loader.startTime==0 || Loader.startNanoTime==0) {
+        if(Loader.measurementStartTime==null) {
             return;
         }
 
-        long currentTime = Util.getCurrentTimeMillis();
+        Instant currentTime = Util.getCurrentTimeWithOffset();
+        long currentTimeMillis = Util.getEpochMillis(currentTime);
         long pubTime = ByteBuffer.wrap(payload).getLong();
 
-        int latency = (int)(currentTime - pubTime);
+        int latency = (int)(currentTimeMillis - pubTime);
         if (latency < 0) {
             // If running MQTTLoader on multiple machines, a slight time error may cause a negative value of latency.
             latency = 0;
             Loader.LOGGER.fine("Negative value of latency is converted to zero.");
         }
 
-        recorder.record(new Record(currentTime, clientId, false, latency));
+        recorder.record(new Record(currentTimeMillis, clientId, false, latency));
         Loader.lastRecvTime = currentTime;
-        Loader.LOGGER.fine("Received a message on topic \"" + topic + "\" (" + clientId + ").");
+//        Loader.LOGGER.fine("Received a message on topic \"" + topic + "\" (" + clientId + ").");
     }
 }

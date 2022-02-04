@@ -7,3 +7,6 @@ build/
 
 # TLS-related files
 *.jks
+
+# Other
+bin/

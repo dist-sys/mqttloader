@@ -25,6 +25,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -56,10 +59,10 @@ public class Loader {
     private final List<AbstractClient> publishers = new ArrayList<>();
     private final List<AbstractClient> subscribers = new ArrayList<>();
 
-    public static volatile long startTime = 0;  // Measurement start time by System.currentTimeMillis()
-    public static volatile long startNanoTime = 0;  // Measurement start time by System.nanoTime()
-    private long endTime;  // Measurement end time
-    public static volatile long lastRecvTime;   // Last time any of subscribers received a message
+    public static volatile Instant measurementStartTime = null;
+    public static volatile Instant measurementEndTime = null;
+    public static volatile Instant lastRecvTime;    // Last time any of subscribers received a message
+    public static long offset;
 
     private Recorder recorder;
     public static CountDownLatch cdl;
@@ -87,7 +90,7 @@ public class Loader {
 
         LOGGER.info("Terminating clients.");
         disconnectClients();
-        endTime = Util.getCurrentTimeMillis();
+        measurementEndTime = Util.getCurrentTimeWithOffset();
         recorder.terminate();
 
         LOGGER.info("Calculating results.");
@@ -372,15 +375,13 @@ public class Loader {
      * Start measurement by running publishers.
      */
     private void startMeasurement() {
+        offset = Util.getOffsetFromNtpServer();
+
         // delay: Give ScheduledExecutorService time to setup scheduling.
         long delay = publishers.size();
-        long offset = Util.getOffsetFromNtpServer();
-        long currentTime = System.currentTimeMillis();
-        long currentNanoTime = System.nanoTime();
 
-        startTime = currentTime + offset + delay;
-        startNanoTime = currentNanoTime + delay * Constants.MILLISECOND_IN_NANO;
-        lastRecvTime = startTime;
+        measurementStartTime = Util.getCurrentTimeWithOffset().plusMillis(delay);
+        lastRecvTime = measurementStartTime;
 
         for(AbstractClient pub: publishers){
             ((AbstractPublisher)pub).start(delay);
@@ -401,7 +402,7 @@ public class Loader {
         }
 
         int execTime = Util.getPropValueInt(Prop.EXEC_TIME);
-        execTime -= (int)(Util.getElapsedNanoTime()/Constants.SECOND_IN_NANO);
+        execTime -= (int)(Duration.between(Loader.measurementStartTime, Util.getCurrentTimeWithOffset()).get(ChronoUnit.SECONDS));
         if(execTime > 0) {
             try {
                 cdl.await(execTime, TimeUnit.SECONDS);
@@ -494,8 +495,8 @@ public class Loader {
         Util.paddingTreeMap(recvThroughputs);
 
         System.out.println();
-        System.out.println("Measurement started: " + Constants.DATE_FORMAT_FOR_LOG.format(new Date(startTime)));
-        System.out.println("Measurement ended: " + Constants.DATE_FORMAT_FOR_LOG.format(new Date(endTime)));
+        System.out.println("Measurement started: " + Constants.DATE_FORMAT_FOR_LOG.format(Date.from(measurementStartTime)));
+        System.out.println("Measurement ended: " + Constants.DATE_FORMAT_FOR_LOG.format(Date.from(measurementEndTime)));
         System.out.println();
         System.out.println("-----Publisher-----");
         printThroughput(sendThroughputs, true);

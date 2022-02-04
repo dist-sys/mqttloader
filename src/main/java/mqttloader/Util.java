@@ -25,10 +25,12 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.TreeMap;
-
 import mqttloader.Constants.Prop;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
@@ -145,18 +147,13 @@ public class Util {
         return ByteBuffer.allocate(size).putLong(currentTime).array();
     }
 
-    public static long getCurrentTimeMillis() {
-        return (getElapsedNanoTime()/Constants.MILLISECOND_IN_NANO) + Loader.startTime;
+    public static Instant getCurrentTimeWithOffset() {
+        return Instant.now().plusMillis(Loader.offset);
     }
 
-    /**
-     *
-     * @return Elapsed time from startTime in nano seconds.
-     */
-    public static long getElapsedNanoTime() {
-        return System.nanoTime() - Loader.startNanoTime;
+    public static long getEpochMillis(Instant time) {
+        return time.getEpochSecond()*1000L + time.getNano()/1000000;
     }
-
 
     public static void trimTreeMap(TreeMap<Integer, ?> map, int rampup, int rampdown) {
         if(map.size() == 0) {

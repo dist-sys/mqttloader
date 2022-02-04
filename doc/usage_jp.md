@@ -276,6 +276,8 @@ MQTTLoaderのビルドには、以下バージョンのJDKとGradleが必要で�
 上記より前のバージョンでの動作は未確認です。  
 なお、Gradle wrapperを用意してあるため、以降の手順でgradlewコマンドを使う際に、Gradleは自動的にインストールされます。
 
+参考：[GradleとJavaのバージョン互換性](https://docs.gradle.org/current/userguide/compatibility.html)
+
 ### 5-b. ダウンロード
 GitHubからクローンしてください： `$ git clone git@github.com:dist-sys/mqttloader.git`  
 リポジトリのディレクトリ構造は下記のようになっています。

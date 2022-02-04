@@ -117,7 +117,7 @@ public class Recorder implements Runnable {
     }
 
     public void recordInMemory(Record record) {
-        int elapsedSecond = (int)((record.getTimestamp()-Loader.startTime)/1000);
+        int elapsedSecond = (int)((record.getTimestamp()-Util.getEpochMillis(Loader.measurementStartTime))/1000);
         if(record.isSend()) {
             if(sendThroughputs.containsKey(elapsedSecond)) {
                 sendThroughputs.put(elapsedSecond, sendThroughputs.get(elapsedSecond)+1);
