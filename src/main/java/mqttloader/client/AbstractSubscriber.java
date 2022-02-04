@@ -36,7 +36,7 @@ public abstract class AbstractSubscriber extends AbstractClient {
     protected void recordReceive(String topic, byte[] payload) {
         // Skip if preparation has not been completed yet.
         // Time calculation methods in Util class, such as Util.getCurrentTimeMillis(), need startTime and startNanoTime have already been set.
-        if(Loader.startTime==0 || Loader.startNanoTime==0) {
+        if(Loader.startNanoTime==0) {
             return;
         }
 
@@ -52,6 +52,6 @@ public abstract class AbstractSubscriber extends AbstractClient {
 
         recorder.record(new Record(currentTime, clientId, false, latency));
         Loader.lastRecvTime = currentTime;
-        Loader.LOGGER.fine("Received a message on topic \"" + topic + "\" (" + clientId + ").");
+//        Loader.LOGGER.fine("Received a message on topic \"" + topic + "\" (" + clientId + ").");
     }
 }

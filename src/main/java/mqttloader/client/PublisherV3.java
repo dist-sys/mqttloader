@@ -16,7 +16,6 @@
 
 package mqttloader.client;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 import mqttloader.Loader;

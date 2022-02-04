@@ -100,7 +100,7 @@ public abstract class AbstractPublisher extends AbstractClient implements Runnab
 
     protected void recordSend(long currentTime) {
         recorder.record(new Record(currentTime, clientId, true));
-        Loader.LOGGER.fine("Published a message to topic \"" + topic + "\" (" + clientId + ").");
+//        Loader.LOGGER.fine("Published a message to topic \"" + topic + "\" (" + clientId + ").");
     }
 
     protected void terminateTasks() {
