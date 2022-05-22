@@ -19,7 +19,7 @@ package mqttloader;
 import java.text.SimpleDateFormat;
 
 public class Constants {
-    public static final String VERSION = "0.8.3";
+    public static final String VERSION = "0.8.4";
     public static final String BROKER_PREFIX_TCP = "tcp://";
     public static final String BROKER_PREFIX_TLS = "ssl://";
     public static final String BROKER_PORT_TCP = "1883";
@@ -35,6 +35,7 @@ public class Constants {
     public static final long SECOND_IN_MICRO = 1000000L;
     public static final SimpleDateFormat DATE_FORMAT_FOR_LOG = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS z");
     public static final SimpleDateFormat DATE_FORMAT_FOR_FILENAME = new SimpleDateFormat("yyyyMMdd-HHmmss");
+    public static final int KEYSTORE_PASSWORD_LENGTH = 20;
 
     public enum Opt {
         CONFIG("c", true, "Configuration file's path.", "mqttloader.conf"),
@@ -106,10 +107,10 @@ public class Constants {
         OUTPUT("output"),
         USERNAME("user_name"),
         PASSWORD("password"),
-        TLS_TRUSTSTORE("tls_truststore"),
-        TLS_TRUSTSTORE_PASS("tls_truststore_pass"),
-        TLS_KEYSTORE("tls_keystore"),
-        TLS_KEYSTORE_PASS("tls_keystore_pass");
+        TLS("tls", "false"),
+        TLS_ROOTCA_CERT("tls_rootca_cert"),
+        TLS_CLIENT_CERT_CHAIN("tls_client_cert_chain"),
+        TLS_CLIENT_KEY("tls_client_key");
 
         private final String name;
         private final String defaultValue;
@@ -129,6 +130,30 @@ public class Constants {
 
         public String getDefaultValue() {
             return defaultValue;
+        }
+    }
+
+    public enum PemFormat {
+        PKCS1("-----BEGIN RSA PRIVATE KEY-----", "-----END RSA PRIVATE KEY-----"),
+        PKCS8("-----BEGIN PRIVATE KEY-----", "-----END PRIVATE KEY-----"),
+        RFC5915("-----BEGIN EC PRIVATE KEY-----", "-----END EC PRIVATE KEY-----"),
+        RFC7468_CERT("-----BEGIN CERTIFICATE-----", "-----END CERTIFICATE-----"),
+        X509("-----BEGIN X509 CERTIFICATE-----", "-----END X509 CERTIFICATE-----");
+
+        private final String begin;
+        private final String end;
+
+        PemFormat(String begin, String end){
+            this.begin = begin;
+            this.end = end;
+        }
+
+        public String getBegin(){
+            return begin;
+        }
+
+        public String getEnd(){
+            return end;            
         }
     }
 }

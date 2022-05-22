@@ -23,8 +23,12 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.cert.Certificate;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -220,42 +224,39 @@ public class Loader {
             exit(1);
         }
 
-        prop = Prop.TLS_TRUSTSTORE;
+        prop = Prop.TLS;
+        flag = Util.getPropValue(prop);
+        if (!flag.equals("true") && !flag.equals("false")) {
+            LOGGER.severe("\"" + prop.getName() + "\" in configuration file must be \"true\" or \"false\".");
+            exit(1);
+        }
+
+        prop = Prop.TLS_ROOTCA_CERT;
         if (Util.hasPropValue(prop)) {
-            if (!Util.hasPropValue(Prop.TLS_TRUSTSTORE_PASS)) {
-                LOGGER.severe("\"" + Prop.TLS_TRUSTSTORE_PASS.getName() + "\" in configuration file is mandatory if \"" + prop.getName() + "\" is specified.");
-                exit(1);
+            StringTokenizer st = new StringTokenizer(Util.getPropValue(prop), ";");
+            while(st.hasMoreTokens()){
+                if(!new File(st.nextToken()).exists()){
+                    LOGGER.severe("TLS CA certificate file specified by \"" + prop.getName() + "\" does not exist.");
+                    exit(1);
+                }
             }
+        }
+
+        prop = Prop.TLS_CLIENT_CERT_CHAIN;
+        if (Util.hasPropValue(prop)) {
+            StringTokenizer st = new StringTokenizer(Util.getPropValue(prop), ";");
+            while(st.hasMoreTokens()){
+                if(!new File(st.nextToken()).exists()){
+                    LOGGER.severe("TLS client certificate file specified by \"" + prop.getName() + "\" does not exist.");
+                    exit(1);
+                }
+            }
+        }
+
+        prop = Prop.TLS_CLIENT_KEY;
+        if (Util.hasPropValue(prop)) {
             if(!new File(Util.getPropValue(prop)).exists()){
-                LOGGER.severe("TLS truststore file specified by \"" + prop.getName() + "\" does not exist.");
-                exit(1);
-            }
-        }
-
-        prop = Prop.TLS_TRUSTSTORE_PASS;
-        if (Util.hasPropValue(prop)) {
-            if (!Util.hasPropValue(Prop.TLS_TRUSTSTORE)) {
-                LOGGER.severe("\"" + Prop.TLS_TRUSTSTORE.getName() + "\" in configuration file is mandatory if \"" + Prop.TLS_TRUSTSTORE_PASS.getName() + "\" is specified.");
-                exit(1);
-            }
-        }
-
-        prop = Prop.TLS_KEYSTORE;
-        if (Util.hasPropValue(prop)) {
-            if (!Util.hasPropValue(Prop.TLS_TRUSTSTORE) || !Util.hasPropValue(Prop.TLS_TRUSTSTORE_PASS) || !Util.hasPropValue(Prop.TLS_KEYSTORE_PASS)) {
-                LOGGER.severe("\"" + Prop.TLS_TRUSTSTORE.getName() + "\", \"" + Prop.TLS_TRUSTSTORE_PASS.getName() + "\", and \"" + Prop.TLS_KEYSTORE_PASS.getName() + "\" in configuration file is mandatory if \"" + prop.getName() + "\" is specified.");
-                exit(1);
-            }
-            if(!new File(Util.getPropValue(prop)).exists()){
-                LOGGER.severe("TLS keystore file specified by \"" + prop.getName() + "\" does not exist.");
-                exit(1);
-            }
-        }
-
-        prop = Prop.TLS_KEYSTORE_PASS;
-        if (Util.hasPropValue(prop)) {
-            if (!Util.hasPropValue(Prop.TLS_TRUSTSTORE) || !Util.hasPropValue(Prop.TLS_TRUSTSTORE_PASS) || !Util.hasPropValue(Prop.TLS_KEYSTORE)) {
-                LOGGER.severe("\"" + Prop.TLS_TRUSTSTORE.getName() + "\", \"" + Prop.TLS_TRUSTSTORE_PASS.getName() + "\", and \"" + Prop.TLS_KEYSTORE.getName() + "\" in configuration file is mandatory if \"" + prop.getName() + "\" is specified.");
+                LOGGER.severe("TLS client key file specified by \"" + prop.getName() + "\" does not exist.");
                 exit(1);
             }
         }
@@ -276,18 +277,18 @@ public class Loader {
     private void prepareClients() {
         String broker = Util.getPropValue(Prop.BROKER);
         if(!broker.startsWith(Constants.BROKER_PREFIX_TCP) && !broker.startsWith(Constants.BROKER_PREFIX_TLS)) {
-            if(!Util.hasPropValue(Prop.TLS_TRUSTSTORE)) {
-                broker = Constants.BROKER_PREFIX_TCP +broker;
-            } else {
+            if(Util.getPropValueBool(Prop.TLS)) {
                 broker = Constants.BROKER_PREFIX_TLS +broker;
+            } else {
+                broker = Constants.BROKER_PREFIX_TCP +broker;
             }
         }
 
         if(!Util.hasPropValue(Prop.BROKER_PORT)) {
-            if (!Util.hasPropValue(Prop.TLS_TRUSTSTORE)) {
-                broker = broker + ":" + Constants.BROKER_PORT_TCP;
-            } else {
+            if(Util.getPropValueBool(Prop.TLS)) {
                 broker = broker + ":" + Constants.BROKER_PORT_TLS;
+            } else {
+                broker = broker + ":" + Constants.BROKER_PORT_TCP;
             }
         } else {
             broker = broker + ":" + Util.getPropValue(Prop.BROKER_PORT);
@@ -299,18 +300,64 @@ public class Loader {
         String password = Util.getPropValue(Prop.PASSWORD);
 
         Properties sslProps = null;
-        if(Util.hasPropValue(Prop.TLS_TRUSTSTORE)) {
+        if(Util.hasPropValue(Prop.TLS_ROOTCA_CERT)) {
             sslProps = new Properties();
-            File trustStore = new File(Util.getPropValue(Prop.TLS_TRUSTSTORE));
-            sslProps.setProperty("com.ibm.ssl.trustStore", trustStore.getPath());
-            sslProps.setProperty("com.ibm.ssl.trustStorePassword", Util.getPropValue(Prop.TLS_TRUSTSTORE_PASS));
-            LOGGER.info("Truststore file: "+trustStore.getAbsolutePath());
-            if(Util.hasPropValue(Prop.TLS_KEYSTORE)) {
-                File keystore = new File(Util.getPropValue(Prop.TLS_KEYSTORE));
-                sslProps.setProperty("com.ibm.ssl.keyStore", keystore.getPath());
-                sslProps.setProperty("com.ibm.ssl.clientAuthentication", "true");
-                sslProps.setProperty("com.ibm.ssl.keyStorePassword", Util.getPropValue(Prop.TLS_KEYSTORE_PASS));
-                LOGGER.info("Keystore file: "+keystore.getAbsolutePath());
+            File trustStoreFile;
+
+            char[] pass;
+            FileOutputStream fos;
+            try {
+                KeyStore trustStore = KeyStore.getInstance("JKS");
+                trustStore.load(null, null);
+                trustStore.setCertificateEntry("rootCA", new Pem(Util.getPropValue(Prop.TLS_ROOTCA_CERT)).getCerts().get(0));
+                
+                pass = Util.genRandomChars(Constants.KEYSTORE_PASSWORD_LENGTH).toCharArray(); 
+                trustStoreFile = File.createTempFile("ml-tmp-truststore", ".jks");
+                trustStoreFile.deleteOnExit();
+                fos = new FileOutputStream(trustStoreFile);
+                trustStore.store(fos, pass);
+                fos.flush();
+                fos.close();
+            } catch (Exception e) {
+                throw new RuntimeException("Cannot build keystore", e);
+            }
+            sslProps.setProperty("com.ibm.ssl.trustStore", trustStoreFile.getPath());
+            sslProps.setProperty("com.ibm.ssl.trustStorePassword", new String(pass));
+            LOGGER.info("Truststore: "+trustStoreFile.getAbsolutePath());
+//            LOGGER.info("Truststore pass: "+new String(pass));
+
+            if(Util.hasPropValue(Prop.TLS_CLIENT_KEY)) {
+                File keyStoreFile;            
+                try {
+                    PrivateKey key = new Pem(Util.getPropValue(Prop.TLS_CLIENT_KEY)).getPrivateKey();
+
+                    // Note: StringTokenizer skips an empty token.
+                    StringTokenizer st = new StringTokenizer(Util.getPropValue(Prop.TLS_CLIENT_CERT_CHAIN), ";");
+                    Certificate[] certArray = new Certificate[st.countTokens()];
+                    for(int i=0;i<certArray.length;i++){
+                        certArray[i] = new Pem(st.nextToken()).getCerts().get(0);
+                    }
+
+                    KeyStore keyStore = KeyStore.getInstance("JKS");
+                    keyStore.load(null, null);
+        
+                    pass = Util.genRandomChars(Constants.KEYSTORE_PASSWORD_LENGTH).toCharArray(); 
+                    keyStoreFile = File.createTempFile("ml-tmp-keystore", ".jks");
+                    keyStoreFile.deleteOnExit();
+                    keyStore.setKeyEntry("client-cert", key, pass, certArray);
+                    fos = new FileOutputStream(keyStoreFile);
+                    keyStore.store(fos, pass);
+                    fos.flush();
+                    fos.close();
+
+                    sslProps.setProperty("com.ibm.ssl.keyStore", keyStoreFile.getPath());
+                    sslProps.setProperty("com.ibm.ssl.clientAuthentication", "true");
+                    sslProps.setProperty("com.ibm.ssl.keyStorePassword", new String(pass));
+                    LOGGER.info("Keystore: "+keyStoreFile.getAbsolutePath());
+//                    LOGGER.info("Keystore pass: "+new String(pass));
+                } catch (Exception e) {
+                    throw new RuntimeException("Cannot build keystore", e);
+                }
             }
         }
 

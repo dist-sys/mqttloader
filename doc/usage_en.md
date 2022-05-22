@@ -1,4 +1,4 @@
-# MQTTLoader usage (v0.8.3)
+# MQTTLoader usage (v0.8.4)
 MQTTLoader is a load testing tool (client tool) for MQTT.  
 It supports both MQTT v5.0 and v3.1.1.  
 From v0.8.0, it supports TLS authentication.
@@ -13,7 +13,7 @@ Download the archive file (zip or tar) from: https://github.com/dist-sys/mqttloa
 Below is an example of downloading by using curl command.
 
 ```
-$ curl -OL https://github.com/dist-sys/mqttloader/releases/download/v0.8.3/mqttloader-0.8.3.zip
+$ curl -OL https://github.com/dist-sys/mqttloader/releases/download/v0.8.4/mqttloader-0.8.4.zip
 ```
 
 By extracting it, you can get the following files.
@@ -90,10 +90,10 @@ The following table shows the parameters which can be set in *mqttloader.conf*.
 | output <sup>**\*1 \*2**</sup> | No | (none) | Directory path to write out measurement record. If not set, MQTTLoader runs by in-memory mode. <br>Ex. `output = /home/testuser` |
 | user_name | No | (none) | User name. Required if the broker has the configuration of password authentication. |
 | password | No | (none) | Password. Required if the broker has the configuration of password authentication. |
-| tls_truststore <sup>**\*1**</sup> | No | (none) | File path of truststore file in JKS (Java Key Store) format for TLS authentication. By specifying this parameter, TLS authentication is enabled. <br>Ex. `tls_truststore = /home/testuser/truststore.jks` |
-| tls_truststore_pass | No | (none) | Password for the truststore file. |
-| tls_keystore <sup>**\*1**</sup> | No | (none) | File path of keystore file in JKS (Java Key Store) format for TLS client authentication. By specifying this parameter, TLS client authentication is enabled. <br>Ex. `tls_keystore = /home/testuser/keystore.jks` |
-| tls_keystore_pass | No | (none) | Password for the keystore file. |
+| tls | No | false | A flag for enabling TLS authentication. You can specify `true` or `false`. |
+| tls_rootca_cert <sup>**\*1**</sup> | No | (none) | File path of the root CA's certificate (PEM format). If the certificate has already been stored in your trust store ("cacerts" file in the Java installation directory), you do not need to specify this parameter. <br>Ex. `tls_rootca_cert = /home/testuser/rootca.crt`  |
+| tls_client_key <sup>**\*1**</sup> | No | (none) | File path of the client's private key (PEM format). By specifying this parameter, TLS client authentication is enabled. <br>Ex. `tls_client_key = /home/testuser/client.key` |
+| tls_client_cert_chain <sup>**\*1**</sup> | No | (none) | File paths of the client's certificate chain (PEM format). Multiple paths must be separated by semicolons. Be sure not to include semicolons in file names or directory names. The order must be from the client to the intermediate-CA(s). Root CA certificate is not necessarily. <br>Ex. `tls_client_cert_chain = /home/testuser/client.crt;/home/testuser/ica.crt` |
 
 <sup>**\*1**</sup> For Windows, path separator ` \ ` must be escaped, e.g., `output = C:\\Users\\testuser\\outDir`.
 
@@ -145,50 +145,47 @@ The former is to improve the accuracy of latency calculation, whereas the latter
 
 ### TLS authentication
 MQTTLoader supports TLS authentication.  
+By specifying the parameter `tls` in *mqttloader.conf*, TLS authentication is enabled.
 
-To connect with a broker by TLS, truststore file in JKS (Java Key Store) format that contains CA certificate is needed.  
-By specifying the JKS file with the parameter `tls_truststore` in *mqttloader.conf*, TLS authentication is enabled. 
+You can specify the root CA certificate (self-signed certificate) of the broker's certificate chain with the parameter `tls_rootca_cert` in *mqttloader.conf*.  
+If the root CA has already been stored in your trust store ("cacerts" file in the Java installation directory), you can use TLS authentication without specifying this parameter.
 
 Below is an example procedure when using Mosquitto's public broker.
 
 1. Download CA certificate (mosquitto.org.crt) from https://test.mosquitto.org/
-2. Generate a truststore file by using the *keytool* command.<br>
-`$ keytool -importcert -alias rootCA -trustcacerts -keystore ./truststore.jks -storetype jks -storepass testpass -file ./mosquitto.org.crt`<br>
-In this example, the file name is set to `truststore.jks` and the password is set to `testpass`.
-3. Place the truststore file in an appropriate directory. In this example, we assume to place it in `/home/testuser`.
-4. Specify the following parameters in *mqttloader.conf*.<br>
+2. Place the CA certificate in an appropriate directory. In this example, we assume to place it in `/home/testuser`.
+3. Specify the following parameters in *mqttloader.conf*.<br>
 `broker = test.mosquitto.org`<br>
 `broker_port = 8883`<br>
-`tls_truststore = /home/testuser/truststore.jks`<br>
-`tls_truststore_pass = testpass`
-5. Run MQTTLoader.
+`tls = true`<br>
+`tls_rootca_cert = /home/testuser/mosquitto.org.crt`
+4. Run MQTTLoader.
 
 #### TLS client authentication
-To enable client authentication, you need to prepare keystore file in JKS format in addition to the above mentioned procedure.  
-The keystore file must contain client key / client certificate / CA certificate.  
-By specifying the keystore file with the parameter `tls_keystore` in *mqttloader.conf*, TLS client authentication is enabled.
+To enable client authentication, you need to specify the client's private key, certificate and CA certificate.
 
 Below is an example procedure when using Mosquitto's public broker.
 
-1. Prepare truststore file by the above procedure.
+1. Enable TLS authentication by the above procedure.
 2. Generate client key.<br>
 `$ openssl genrsa -out client.key`
 3. Generate CSR (Certificate Signing Request).<br>
 `$ openssl req -out client.csr -key client.key -new`
 4. Get client certificate (client.crt) by using the website:<br>
 https://test.mosquitto.org/ssl/
-5. Generate keystore file by using the following commands in the directory in which mosquitto.org.crt, client.key, and client.crt are placed.<br>
-`$ openssl pkcs12 -export -out client.p12 -passout pass:testpass -passin pass:testpass -inkey client.key -in client.crt -certfile mosquitto.org.crt`<br>
-`$ keytool -importkeystore -srckeystore client.p12 -srcstorepass testpass -srcstoretype PKCS12 -destkeystore keystore.jks -deststorepass testpass -deststoretype JKS`<br>
-6. Place the keystore file in an appropriate directory. In this example, we assume to place it in `/home/testuser` together with the truststore file.
-7. Specify the following parameters in *mqttloader.conf*.<br>
+5. Place the client's private key and certificate in an appropriate directory. In this example, we assume to place it in `/home/testuser`.
+6. Specify the following parameters in *mqttloader.conf*.<br>
 `broker = test.mosquitto.org`<br>
 `broker_port = 8884`<br>
-`tls_truststore = /home/testuser/truststore.jks`<br>
-`tls_truststore_pass = testpass`<br>
-`tls_keystore = /home/testuser/keystore.jks`<br>
-`tls_keystore_pass = testpass`
-8. Run MQTTLoader.
+`tls = true`<br>
+`tls_rootca_cert = /home/testuser/mosquitto.org.crt`<br>
+`tls_client_key = /home/testuser/client.key`<br>
+`tls_client_cert_chain = /home/testuser/client.crt`
+7. Run MQTTLoader.
+
+Note that you do not need to specify `mosquitto.org.crt` with the parameter `tls_client_cert_chain`, because it is a self-signed certificate (root CA certificate).  
+If it was an intermediate CA, you could specify `tls_client_cert_chain` as follows:  
+`tls_client_cert_chain = /home/testuser/client.crt;/home/testuser/mosquitto.org.crt`
 
 
 ## 4. How to read the results
