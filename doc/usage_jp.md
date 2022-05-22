@@ -1,4 +1,4 @@
-# MQTTLoader 利用方法 (v0.8.3)
+# MQTTLoader 利用方法 (v0.8.4)
 MQTTLoaderは、MQTT v5.0とv3.1.1に対応した負荷テストツール（クライアントツール）です。  
 v0.8.0から、ブローカとのTLS接続にも対応しました。
 
@@ -14,7 +14,7 @@ https://github.com/dist-sys/mqttloader/releases
 以下は、Curlコマンドを使ってダウンロードする場合の例です。
 
 ```
-$ curl -OL https://github.com/dist-sys/mqttloader/releases/download/v0.8.3/mqttloader-0.8.3.zip
+$ curl -OL https://github.com/dist-sys/mqttloader/releases/download/v0.8.4/mqttloader-0.8.4.zip
 ```
 
 ダウンロードしたファイルを解凍すると、以下のディレクトリ構造が得られます。
@@ -90,10 +90,10 @@ broker_port = 1883
 | output <sup>**※1※2**</sup> | × | (無し) | 測定レコードを書き出すディレクトリのパス。未指定の場合、MQTTLoaderはメモリ上でのみ動作。 <br>例： `output = /home/testuser` |
 | user_name | × | (無し) | ユーザ名（ブローカにてパスワード認証が設定されている場合に指定）。 |
 | password | × | (無し) | パスワード（ブローカにてパスワード認証が設定されている場合に指定）。 |
-| tls_truststore <sup>**※1**</sup> | × | (無し) | TLS認証で用いるトラストストアファイル（JKS形式）のパス。このパラメータを指定することで、TLS認証が有効になる。 <br>例： `tls_truststore = /home/testuser/truststore.jks` |
-| tls_truststore_pass | × | (無し) | トラストストアファイルのパスワード。 |
-| tls_keystore <sup>**※1**</sup> | × | (無し) | TLSクライアント認証で用いるキーストアファイル（JKS形式）のパス。このパラメータを指定することで、TLSクライアント認証が有効になる。 <br>例： `tls_keystore = /home/testuser/keystore.jks` |
-| tls_keystore_pass | × | (無し) | キーストアファイルのパスワード。 |
+| tls | × | false | TLS認証の有効/無効を指定するフラグ。指定可能な値は `true` / `false` 。 |
+| tls_rootca_cert <sup>**※1**</sup> | × | (無し) | TLSサーバ認証用のルートCA証明書（PEM形式）のパス。Java実行環境が参照する信頼済み証明書ストア（通常、Javaインストールディレクトリの `cacerts` ファイル）に登録済みのルートCAであれば、指定不要。<br>例： `tls_rootca_cert = /home/testuser/rootca.crt`  |
+| tls_client_key <sup>**※1**</sup> | × | (無し) | TLSクライアント認証用の秘密鍵（PEM形式）のパス。このパラメータを指定することで、TLSクライアント認証が有効になる。<br>例： `tls_client_key = /home/testuser/client.key` |
+| tls_client_cert_chain <sup>**※1**</sup> | × | (無し) | TLSクライアント認証用のクライアント証明書（PEM形式）のパス。中間CA証明書（PEM形式）のパスもセミコロン区切りで記載する。クライアント証明書、中間CA証明書、の順序で記載すること。ルートCA証明書は不要。（ファイル名・フォルダ名にセミコロンが含まれていると利用不可）<br>例： `tls_client_cert_chain = /home/testuser/client.crt;/home/testuser/ica.crt` |
 
 <sup>**※1**</sup> Windowsのファイルパスの区切り文字 ` \ ` はエスケープする必要があります。例えば、`output = C:\\Users\\testuser\\outDir` のように書く必要があります。
 
@@ -145,51 +145,47 @@ ntp = <NTP-SERVER>
 
 ### TLS接続
 MQTTLoaderは、ブローカとのTLS接続が可能です。  
+*mqttloader.conf* の `tls` を `true` に設定することで、TLS接続が有効となります。
 
-ブローカとTLS接続するためには、まず、CA証明書をインポートしたトラストストアファイルを、JKS（Java Key Store）形式で用意します。  
-そして、用意したJKSファイルを、 *mqttloader.conf* の `tls_truststore` で指定します。
+ブローカの証明書チェーンのルートCA証明書（自己署名証明書）を、*mqttloader.conf* の `tls_rootca_cert` で指定することができます。  
+（信頼済み証明書ストアに登録済みのルートCAであれば、指定せずにそのままTLS接続ができます。通常、Java実行環境が参照する信頼済み証明書ストアは、Javaインストールディレクトリの `cacerts` ファイルです。）
 
 以下、Mosquittoのパブリックブローカを例に、手順を述べます。
 
 1. https://test.mosquitto.org/ から、CA証明書（mosquitto.org.crt）をダウンロード
-2. *keytool* コマンドを使い、トラストストアファイルを生成<br>
-`$ keytool -importcert -alias rootCA -trustcacerts -keystore ./truststore.jks -storetype jks -storepass testpass -file ./mosquitto.org.crt`<br>
-ここでは、ファイル名を `truststore.jks` 、パスワードを `testpass` として生成している。
-3. トラストストアファイルを、適切なディレクトリに配置。ここでは、 `/home/testuser` に置くと仮定する。
-4.  *mqttloader.conf* に、以下を指定<br>
+2. CA証明書を、適切なディレクトリに配置。ここでは、 `/home/testuser` に置くと仮定する。
+3. *mqttloader.conf* に、以下を指定<br>
 `broker = test.mosquitto.org`<br>
 `broker_port = 8883`<br>
-`tls_truststore = /home/testuser/truststore.jks`<br>
-`tls_truststore_pass = testpass`
-5. MQTTLoaderを実行
+`tls = true`<br>
+`tls_rootca_cert = /home/testuser/mosquitto.org.crt`
+4. MQTTLoaderを実行
 
 #### TLSクライアント認証
-クライアント認証もおこなう場合、上記に加え、キーストアファイル（JKS形式）の用意が必要です。  
-キーストアファイルには、クライアント証明書・クライアントの鍵・CA証明書を格納します。  
-用意したキーストアファイルを、 *mqttloader.conf* の `tls_keystore` で指定することで、TLSクライアント認証が有効となります。
+クライアント認証もおこなう場合、上記に加え、クライアントの秘密鍵およびクライアント証明書・CA証明書の指定が必要です。
 
 以下、Mosquittoのパブリックブローカを例に、手順を述べます。
 
-1. 上記の手順により、トラストストアファイルを用意
+1. 上記の手順により、TLSサーバ認証を有効状態にしておく
 2. クライアント鍵を生成<br>
 `$ openssl genrsa -out client.key`
 3. 署名要求（CSR）を生成<br>
 `$ openssl req -out client.csr -key client.key -new`
 4. クライアント証明書の作成<br>
 https://test.mosquitto.org/ssl/ にCSRを入力して、 client.crt をダウンロードする。
-5. キーストアファイルの生成<br>
-mosquitto.org.crt、client.key、client.crt があるディレクトリにて、以下のコマンドを実行<br>
-`$ openssl pkcs12 -export -out client.p12 -passout pass:testpass -passin pass:testpass -inkey client.key -in client.crt -certfile mosquitto.org.crt`<br>
-`$ keytool -importkeystore -srckeystore client.p12 -srcstorepass testpass -srcstoretype PKCS12 -destkeystore keystore.jks -deststorepass testpass -deststoretype JKS`<br>
-6. キーストアファイルを、適切なディレクトリに配置。ここでは、トラストストアファイルと同様 `/home/testuser` に置くと仮定する。
-7. MQTTLoaderのコンフィグファイルに、以下を指定<br>
+5. 秘密鍵およびクライアント証明書を適切なディレクトリに配置。ここでは、 `/home/testuser` に置くと仮定する。
+6. *mqttloader.conf* に、以下を指定<br>
 `broker = test.mosquitto.org`<br>
 `broker_port = 8884`<br>
-`tls_truststore = /home/testuser/truststore.jks`<br>
-`tls_truststore_pass = testpass`<br>
-`tls_keystore = /home/testuser/keystore.jks`<br>
-`tls_keystore_pass = testpass`
-8. MQTTLoaderを実行
+`tls = true`<br>
+`tls_rootca_cert = /home/testuser/mosquitto.org.crt`<br>
+`tls_client_key = /home/testuser/client.key`<br>
+`tls_client_cert_chain = /home/testuser/client.crt`
+7. MQTTLoaderを実行
+
+`mosquitto.org.crt` は自己署名証明書（ルートCA証明書）であるため、`tls_client_cert_chain` での指定は不要です。  
+もし、`mosquitto.org.crt` が中間CA証明書である場合は、`tls_client_cert_chain` は以下のように記述します。  
+`tls_client_cert_chain = /home/testuser/client.crt;/home/testuser/mosquitto.org.crt`
 
 
 ## 4. 測定結果の見方
