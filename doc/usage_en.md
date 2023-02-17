@@ -213,7 +213,7 @@ If QoS level is set to 1 or 2, counting is done when receiving PUBACK or PUBCOMP
 After completion, MQTTLoader calculates the maximum throughput, the average throughput, and the number of published messages.  
 `Per second throughput [msg/s]` is the time series of throughputs per second.  
 
-By using the parameterse `ramp_up` and `ramp_down`, you can exclude the beginning and trailing data.  
+By using the parameters `ramp_up` and `ramp_down`, you can exclude the beginning and trailing data.  
 If you set the following parameter settings for example, the beginning one second and the trailing one second are excluded.
 
 ```
@@ -256,6 +256,7 @@ timestamp (Unix time in microseconds), client ID, event type (S: send, R: receiv
 
 Although MQTTLoader outputs the measurement result to the console, you can use the above .csv file for further analysis.  
 Note that the latency in the above file is in microseconds, whereas that in the console is in milliseconds with three digits after the decimal point.  
+the parameters `ramp_up` and `ramp_down` do not affect this file.  
 
 ---
 ---
