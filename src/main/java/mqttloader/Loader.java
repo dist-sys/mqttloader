@@ -430,8 +430,11 @@ public class Loader {
         measurementStartTime = Util.getCurrentTimeWithOffset().plusMillis(delay);
         lastRecvTime = measurementStartTime;
 
-        for(AbstractClient pub: publishers){
-            ((AbstractPublisher)pub).start(delay);
+		// publish interval in micro seconds.
+		int interval = Util.getPropValueInt(Prop.INTERVAL);
+		int numPub = publishers.size();
+		for(int i=0;i<numPub;i++){
+            ((AbstractPublisher)publishers.get(i)).start(delay*Constants.MILLISECOND_IN_MICRO+interval*i/numPub);
         }
     }
 
@@ -498,6 +501,9 @@ public class Loader {
                 while ((str = br.readLine()) != null) {
                     StringTokenizer st = new StringTokenizer(str, ",");
                     long timestamp = Long.valueOf(st.nextToken());
+					if(!st.hasMoreTokens()) {
+						continue; // skip the first line that only has a timestamp.
+					}
                     int elapsedTime = (int)((timestamp - Util.getEpochMicros(Loader.measurementStartTime))/Constants.SECOND_IN_MICRO);
                     st.nextToken(); //client ID
                     boolean isSend = st.nextToken().equals("S") ? true : false;

@@ -1,4 +1,4 @@
-# MQTTLoader usage (v0.8.4)
+# MQTTLoader usage (v0.8.5)
 MQTTLoader is a load testing tool (client tool) for MQTT.  
 It supports both MQTT v5.0 and v3.1.1.  
 From v0.8.0, it supports TLS authentication.
@@ -13,7 +13,7 @@ Download the archive file (zip or tar) from: https://github.com/dist-sys/mqttloa
 Below is an example of downloading by using curl command.
 
 ```
-$ curl -OL https://github.com/dist-sys/mqttloader/releases/download/v0.8.4/mqttloader-0.8.4.zip
+$ curl -OL https://github.com/dist-sys/mqttloader/releases/download/v0.8.5/mqttloader-0.8.5.zip
 ```
 
 By extracting it, you can get the following files.
@@ -70,7 +70,7 @@ The following table shows the parameters which can be set in *mqttloader.conf*.
 |:-----------|:------------:|:------------|:------------|
 | broker | Yes | (none) | Broker's IP address or FQDN. <br>Ex. `broker = 127.0.0.1` |
 | broker_port | No | 1883 (non-TLS)<br>8883 (TLS) | Broker's port number. <br>Ex. `broker_port = 1883` |
-| mqtt_version | No | 5 | MQTT version. `3` for MQTT v3.1.1, and `5` for MQTT v5.0. |
+| mqtt_version | No | 5 | MQTT version. 3 for MQTT v3.1.1, and 5 for MQTT v5.0. |
 | num_publishers | No | 1 | The number of publishers. All publishers send messages to a same topic. |
 | num_subscribers | No | 1 | The number of subscribers. All subscribers are subscribe to a same topic. |
 | qos_publisher | No | 0 | QoS level of publishers. <br>Valid values are 0/1/2. |
@@ -82,10 +82,10 @@ The following table shows the parameters which can be set in *mqttloader.conf*.
 | num_messages | No | 100 | The number of messages sent by **each** publisher. |
 | ramp_up | No | 0 | Ramp-up time in seconds. <br>See **4. How to read the results** for details. |
 | ramp_down | No | 0 | Ramp-down time in seconds. <br>See **4. How to read the results** for details. |
-| interval | No | 0 | Publish interval in microseconds. |
+| interval | No | 0 | Publish interval in microseconds.<br>Regardless of num_publishers, each publisher sends messages at this interval. In addition, the gap between multiple publishers' sending is adjusted to be interval/num_publishers as far as possible. |
 | subscriber_timeout | No | 5 | Timeout for receiving messages by subscribers in seconds. |
 | exec_time | No | 60 | Maximum execution time for measurement in seconds. |
-| log_level | No | INFO | Log level. <br>Valid values are `SEVERE`/`WARNING`/`INFO`/`ALL`. |
+| log_level | No | INFO | Log level. <br>Valid values are SEVERE/WARNING/INFO/ALL. |
 | ntp | No | (none) | NTP server's IP address or FQDN. By setting this, throughput and latency are calculated based on the NTP server's time.<br>It should be set when running multiple MQTTLoader on different machines.<br>Ex. `ntp = ntp.nict.jp` |
 | output <sup>**\*1 \*2**</sup> | No | (none) | Directory path to write out measurement record. If not set, MQTTLoader runs by in-memory mode. <br>Ex. `output = /home/testuser` |
 | user_name | No | (none) | User name. Required if the broker has the configuration of password authentication. |
@@ -213,7 +213,7 @@ If QoS level is set to 1 or 2, counting is done when receiving PUBACK or PUBCOMP
 After completion, MQTTLoader calculates the maximum throughput, the average throughput, and the number of published messages.  
 `Per second throughput [msg/s]` is the time series of throughputs per second.  
 
-By using the parameterse `ramp_up` and `ramp_down`, you can exclude the beginning and trailing data.  
+By using the parameters `ramp_up` and `ramp_down`, you can exclude the beginning and trailing data.  
 If you set the following parameter settings for example, the beginning one second and the trailing one second are excluded.
 
 ```
@@ -239,6 +239,7 @@ Note that if the specified directory doesn't exist, it is newly created.
 The file `mqttloader_xxxxxxxx-xxxxxx.csv` has records like the following:
 
 ```
+1599643916401359,,,
 1599643916416823,ml-EeiE-p-00001,S,
 1599643916416882,ml-EeiE-p-00000,S,
 1599643916419123,ml-EeiE-s-00000,R,3165
@@ -248,6 +249,7 @@ The file `mqttloader_xxxxxxxx-xxxxxx.csv` has records like the following:
 ```
 
 Each line, consists of comma-separeted values, indicates the following data.  
+The first line indicates the measurement start time.  
 In the case that the event type is `R`, latency data follows.
 
 ```
@@ -256,6 +258,7 @@ timestamp (Unix time in microseconds), client ID, event type (S: send, R: receiv
 
 Although MQTTLoader outputs the measurement result to the console, you can use the above .csv file for further analysis.  
 Note that the latency in the above file is in microseconds, whereas that in the console is in milliseconds with three digits after the decimal point.  
+the parameters `ramp_up` and `ramp_down` do not affect this file.  
 
 ---
 ---

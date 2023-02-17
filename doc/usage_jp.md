@@ -1,4 +1,4 @@
-# MQTTLoader 利用方法 (v0.8.4)
+# MQTTLoader 利用方法 (v0.8.5)
 MQTTLoaderは、MQTT v5.0とv3.1.1に対応した負荷テストツール（クライアントツール）です。  
 v0.8.0から、ブローカとのTLS接続にも対応しました。
 
@@ -14,7 +14,7 @@ https://github.com/dist-sys/mqttloader/releases
 以下は、Curlコマンドを使ってダウンロードする場合の例です。
 
 ```
-$ curl -OL https://github.com/dist-sys/mqttloader/releases/download/v0.8.4/mqttloader-0.8.4.zip
+$ curl -OL https://github.com/dist-sys/mqttloader/releases/download/v0.8.5/mqttloader-0.8.5.zip
 ```
 
 ダウンロードしたファイルを解凍すると、以下のディレクトリ構造が得られます。
@@ -70,27 +70,27 @@ broker_port = 1883
 |:-----------|:------------:|:------------|:------------|
 | broker | ○ | (無し) | ブローカのIPアドレスまたはFQDN。 <br>例： `broker = 127.0.0.1` |
 | broker_port | × | 1883 (non-TLS)<br>8883 (TLS) | ブローカのポート番号。 <br>例： `broker_port = 1883` |
-| mqtt_version | × | 5 | MQTTバージョン。 `3` を指定するとMQTT v3.1.1、`5` を指定するとMQTT v5.0。 |
+| mqtt_version | × | 5 | MQTTバージョン。 3 を指定するとMQTT v3.1.1、5 を指定するとMQTT v5.0。 |
 | num_publishers | × | 1 | publisher数。全publisherは同じトピックにメッセージを送信。 |
 | num_subscribers | × | 1 | subscriber数。全subscriberは同じトピックをsubscribe。 |
 | qos_publisher | × | 0 | publisherのQoSレベル。<br>設定可能な値：0/1/2 |
 | qos_subscriber | × | 0 | subscriberのQoSレベル。<br>設定可能な値：0/1/2 |
-| shared_subscription | × | false | Shared subscriptionの有効/無効を指定するフラグ。指定可能な値は `true` / `false` 。MQTT v5.0でのみ設定可。<br>有効にすると、各メッセージは全subscriberのうちいずれかひとつに届く。<br>例： `shared_subscription = true` |
-| retain | × | false | Retainの有効/無効を指定するフラグ。指定可能な値は `true` / `false` 。 |
+| shared_subscription | × | false | Shared subscriptionの有効/無効を指定するフラグ。指定可能な値は true/false 。MQTT v5.0でのみ設定可。<br>有効にすると、各メッセージは全subscriberのうちいずれかひとつに届く。<br>例： `shared_subscription = true` |
+| retain | × | false | Retainの有効/無効を指定するフラグ。指定可能な値は true/false 。 |
 | topic | × | mqttloader-test-topic | 測定で用いられるトピック名。 |
 | payload | × | 20 | publisherが送信するメッセージのペイロードサイズ。単位はbyte。設定可能な最小値は8。 |
 | num_messages | × | 100 | **各**publisherによって送信されるメッセージの数。 |
 | ramp_up | × | 0 | ランプアップ時間。単位は秒。<br>詳細は **4. 測定結果の見方** を参照。 |
 | ramp_down | × | 0 | ランプダウン時間。単位は秒。<br>詳細は **4. 測定結果の見方** を参照。 |
-| interval | × | 0 | 各publisherがメッセージを送信する間隔。単位はマイクロ秒。 |
+| interval | × | 0 | 各publisherがメッセージを送信する間隔。単位はマイクロ秒。<br>num_publishersの値とは関係なく、各publisherはそれぞれがintervalおきに送信する。また、複数publisher同士の送信タイミングは、可能な範囲でinterval/num_publishersだけずれるように調整される。 |
 | subscriber_timeout | × | 5 | subscriberの受信タイムアウト。単位は秒。 |
 | exec_time | × | 60 | 測定の実行時間上限。単位は秒。 |
-| log_level | × | INFO | ログレベル。<br>設定可能な値：`SEVERE`/`WARNING`/`INFO`/`ALL` |
+| log_level | × | INFO | ログレベル。<br>設定可能な値：SEVERE/WARNING/INFO/ALL |
 | ntp | × | (無し) | NTPサーバのIPアドレスまたはFQDN。設定すると、スループットやレイテンシの計算がNTPサーバ時刻を基準として行われる。<br>複数のMQTTLoaderを異なるマシン上で実行する場合には設定することが望ましい。<br>例：`ntp = ntp.nict.jp` |
 | output <sup>**※1※2**</sup> | × | (無し) | 測定レコードを書き出すディレクトリのパス。未指定の場合、MQTTLoaderはメモリ上でのみ動作。 <br>例： `output = /home/testuser` |
 | user_name | × | (無し) | ユーザ名（ブローカにてパスワード認証が設定されている場合に指定）。 |
 | password | × | (無し) | パスワード（ブローカにてパスワード認証が設定されている場合に指定）。 |
-| tls | × | false | TLS認証の有効/無効を指定するフラグ。指定可能な値は `true` / `false` 。 |
+| tls | × | false | TLS認証の有効/無効を指定するフラグ。指定可能な値は true/false 。 |
 | tls_rootca_cert <sup>**※1**</sup> | × | (無し) | TLSサーバ認証用のルートCA証明書（PEM形式）のパス。Java実行環境が参照する信頼済み証明書ストア（通常、Javaインストールディレクトリの `cacerts` ファイル）に登録済みのルートCAであれば、指定不要。<br>例： `tls_rootca_cert = /home/testuser/rootca.crt`  |
 | tls_client_key <sup>**※1**</sup> | × | (無し) | TLSクライアント認証用の秘密鍵（PEM形式）のパス。このパラメータを指定することで、TLSクライアント認証が有効になる。<br>例： `tls_client_key = /home/testuser/client.key` |
 | tls_client_cert_chain <sup>**※1**</sup> | × | (無し) | TLSクライアント認証用のクライアント証明書（PEM形式）のパス。中間CA証明書（PEM形式）のパスもセミコロン区切りで記載する。クライアント証明書、中間CA証明書、の順序で記載すること。ルートCA証明書は不要。（ファイル名・フォルダ名にセミコロンが含まれていると利用不可）<br>例： `tls_client_cert_chain = /home/testuser/client.crt;/home/testuser/ica.crt` |
@@ -240,6 +240,7 @@ subscriberに関しても、上記と同様にして、受信メッセージの�
 このcsvファイルには、以下のようなデータが記録されます。
 
 ```
+1599643916401359,,,
 1599643916416823,ml-EeiE-p-00001,S,
 1599643916416882,ml-EeiE-p-00000,S,
 1599643916419123,ml-EeiE-s-00000,R,3165
@@ -249,7 +250,8 @@ subscriberに関しても、上記と同様にして、受信メッセージの�
 ```
 
 各行は、カンマ区切りで、以下の内容となっています。  
-送受信種別が `R` の場合のみ、レイテンシも記載されます。
+先頭行には測定開始時刻のみが記載されます。  
+また、送受信種別が `R` の場合のみ、レイテンシも記載されます。
 
 ```
 タイムスタンプ（マイクロ秒単位Unix時間）, クライアントID, 送受信種別（S: 送信, R: 受信）, レイテンシ（マイクロ秒単位）
@@ -257,6 +259,7 @@ subscriberに関しても、上記と同様にして、受信メッセージの�
 
 MQTTLoaderは、測定結果のサマリをコンソールに出力しますが、追加の集計・分析を行いたい場合には上記のファイルを使ってください。  
 なお、コンソールに出力されるレイテンシはミリ秒単位（小数点以下3桁まで）であるのに対し、上記ファイルのレイテンシはマイクロ秒単位である点に注意してください。  
+また、パラメータ`ramp_up`と`ramp_down`はこのファイルには影響しません（すべての送受信記録が出力されます）。  
 
 ---
 ---
