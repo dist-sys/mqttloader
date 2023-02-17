@@ -498,6 +498,9 @@ public class Loader {
                 while ((str = br.readLine()) != null) {
                     StringTokenizer st = new StringTokenizer(str, ",");
                     long timestamp = Long.valueOf(st.nextToken());
+					if(!st.hasMoreTokens()) {
+						continue; // skip the first line that only has a timestamp.
+					}
                     int elapsedTime = (int)((timestamp - Util.getEpochMicros(Loader.measurementStartTime))/Constants.SECOND_IN_MICRO);
                     st.nextToken(); //client ID
                     boolean isSend = st.nextToken().equals("S") ? true : false;

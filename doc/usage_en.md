@@ -239,6 +239,7 @@ Note that if the specified directory doesn't exist, it is newly created.
 The file `mqttloader_xxxxxxxx-xxxxxx.csv` has records like the following:
 
 ```
+1599643916401359,,,
 1599643916416823,ml-EeiE-p-00001,S,
 1599643916416882,ml-EeiE-p-00000,S,
 1599643916419123,ml-EeiE-s-00000,R,3165
@@ -248,6 +249,7 @@ The file `mqttloader_xxxxxxxx-xxxxxx.csv` has records like the following:
 ```
 
 Each line, consists of comma-separeted values, indicates the following data.  
+The first line indicates the measurement start time.  
 In the case that the event type is `R`, latency data follows.
 
 ```
