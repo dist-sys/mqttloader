@@ -50,9 +50,9 @@ public abstract class AbstractPublisher extends AbstractClient implements Runnab
     public void start(long delay) {
         service = Executors.newSingleThreadScheduledExecutor();
         if(pubInterval==0){
-            future = service.schedule(this, delay, TimeUnit.MILLISECONDS);
+            future = service.schedule(this, delay, TimeUnit.MICROSECONDS);
         }else{
-            future = service.scheduleAtFixedRate(this, delay*Constants.MILLISECOND_IN_MICRO, pubInterval, TimeUnit.MICROSECONDS);
+            future = service.scheduleAtFixedRate(this, delay, pubInterval, TimeUnit.MICROSECONDS);
         }
     }
 
