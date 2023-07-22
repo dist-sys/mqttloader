@@ -33,7 +33,7 @@ CreateStartScripts startScripts = project.startScripts
 startScripts.with {
     doLast {
         unixScript.text = unixScript.text.replaceFirst('-Djava.util.logging.config.file=src/dist/logging.properties',
-                '-Djava.util.logging.config.file=\\$APP_HOME/logging.properties')
+                '-Djava.util.logging.config.file=\'\"\\$APP_HOME\"\'/logging.properties')
         windowsScript.text = windowsScript.text.replaceFirst('-Djava.util.logging.config.file=src/dist/logging.properties',
                 '-Djava.util.logging.config.file=%~dp0../logging.properties')
     }
