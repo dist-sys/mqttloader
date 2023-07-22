@@ -57,18 +57,20 @@ public class Recorder implements Runnable {
         }
     }
 
+    public void writeStartTime(){
+        if(!inMemory) {
+            try {
+                bw.write(Util.getEpochMicros(Loader.measurementStartTime) + ",,,");
+                bw.newLine();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
     @Override
     public void run() {
         thread = Thread.currentThread();
-
-		if(!inMemory) {
-			try {
-				bw.write(Util.getEpochMicros(Loader.measurementStartTime) + ",,,");
-				bw.newLine();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
 
         Record record = null;
         while (true) {

@@ -429,6 +429,7 @@ public class Loader {
 
         measurementStartTime = Util.getCurrentTimeWithOffset().plusMillis(delay);
         lastRecvTime = measurementStartTime;
+		recorder.writeStartTime();
 
 		// publish interval in micro seconds.
 		int interval = Util.getPropValueInt(Prop.INTERVAL);
