@@ -25,7 +25,7 @@ public class Constants {
     public static final String BROKER_PORT_TCP = "1883";
     public static final String BROKER_PORT_TLS = "8883";
     public static final String FILE_NAME_PREFIX = "mqttloader_";
-    private static final String HOST_ID = Util.genRandomChars(4);
+    private static final String HOST_ID = Util.genRandomChars(12);
     public static final String SUB_CLIENT_ID_PREFIX = "ml-"+HOST_ID+"-s-";
     public static final String PUB_CLIENT_ID_PREFIX = "ml-"+HOST_ID+"-p-";
     public static final Record STOP_SIGNAL = new Record();
